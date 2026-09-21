@@ -1,0 +1,10 @@
+{
+  "max_rel_objective_error": 4.0716414854431534e-15,
+  "max_rel_gradient_error": 4.257364372406203e-14,
+  "time_f_loop": 0.11930117080005402,
+  "time_f_vec": 0.013367414420017668,
+  "time_grad_loop": 0.1234411160000036,
+  "time_grad_vec": 0.020023571719993926,
+  "speedup_f": 8.924775356811026,
+  "speedup_grad": 6.164790064738812
+}

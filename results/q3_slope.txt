@@ -1,0 +1,1 @@
+log-log slope on [1e-4, 1e-2]: 2.000019
