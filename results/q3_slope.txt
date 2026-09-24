@@ -1,1 +1,6 @@
-log-log slope on [1e-4, 1e-2]: 2.000019
+theta scale: 0.1
+branch counts (z<=-1 / -1<z<0 / z>=0): 7184 / 3461 / 2020
+f_lambda(theta): 2.931311465810e+03
+round-off floor (=100.0*eps*f0): 6.508819e-11
+fit window: t in [5.754399e-07, 9.120108e-02]
+log-log slope: 2.000082

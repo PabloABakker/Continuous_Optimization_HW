@@ -1,0 +1,14 @@
+Step-size sweep for Question 4 (produced by step_size_sweep.py, not by main.py)
+
+lambda = 0.005
+seed = 42
+L = 7.942860403140e+05
+1/L = 1.258992288980e-06
+2/L = 2.517984577960e-06
+iterations per candidate = 500
+
+c, f_final, grad_norm_final, grad_norm_final/grad_norm_0, stop_reason, seconds
+0.5, 5.229515586704e+03, 3.622615404173e+03, 5.851733346166e-02, iteration_cap, 1.053
+1.0, 3.177967948693e+03, 1.856519494821e+03, 2.998898813033e-02, iteration_cap, 1.034
+1.5, 2.368097111913e+03, 1.327259153198e+03, 2.143966659233e-02, iteration_cap, 0.985
+1.9, 1.999255574119e+03, 1.098956156261e+03, 1.775181096552e-02, iteration_cap, 0.963
