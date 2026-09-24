@@ -29,6 +29,10 @@ LAM = 0.005
 SEED = 42              # seed for theta_0 in Q4
 TOL = 1e-3             # relative gradient tolerance in Q4
 MAX_TIME = 3 * 60      # seconds, Q4
+THETA_SCALE = 0.1          # chosen from a scale sweep: populates all 3 branches
+Q2_SCALES = [1e-2, 1e-1, 1.0]   # scales used in the Q2 agreement test
+FLOOR_FACTOR = 100.0       # keep points with err > FLOOR_FACTOR * eps * f0
+T_MAX_FIT = 1e-1           # upper end of the fit; check against the plot
 
 
 # ==================================================================
@@ -45,7 +49,7 @@ def load_data():
     y_test = np.asarray(test.y, dtype=np.float64).ravel()
 
     # The last row already contains the ones (bias): do not append another.
-    assert np.all(X_train[-1, :] == 1.0) and np.all(X_test[-1, :] == 1.0)
+    assert np.allclose(X_train[-1, :], 1.0) and np.allclose(X_test[-1, :], 1.0)              # safer than exact float comparison 
     assert X_train.shape[1] == y_train.size and X_test.shape[1] == y_test.size
     return X_train, y_train, X_test, y_test
 
@@ -116,8 +120,19 @@ def f_and_grad(theta, X, s, lam):
     return f, g
 
 
+def branch_counts(z):
+    """How many z_i fall in each of the three branches of phi."""
+    z = np.asarray(z)
+    return (
+        int(np.sum(z <= -1.0)),
+        int(np.sum((z > -1.0) & (z < 0.0))),
+        int(np.sum(z >= 0.0)),
+    )
+
+
 # ---- timing --------------------------------------------------------
 def time_it(func, args, reps, warmup=2):
+    """Median and minimum wall-clock time over `reps` calls, after warm-up."""
     for _ in range(warmup):
         func(*args)
     times = []
@@ -125,174 +140,293 @@ def time_it(func, args, reps, warmup=2):
         t0 = time.perf_counter()
         func(*args)
         times.append(time.perf_counter() - t0)
-    return float(np.mean(times))
+    return float(np.median(times)), float(np.min(times))
 
 
 def question2(X, s):
     print("\n=== Q2: objective and gradient ===")
     rng = np.random.default_rng(0)
-    n_tests = 10
-    f_err, g_err = [], []
-    for _ in range(n_tests):
-        theta = rng.standard_normal(X.shape[0])
+
+    # ---- numerical agreement, loop vs vectorized ----------------------
+    per_scale = []
+    for scale in Q2_SCALES:
+        theta = scale * rng.standard_normal(X.shape[0])
+        left, middle, right = branch_counts(s * (X.T @ theta))
+
         fl, fv = f_loop(theta, X, s, LAM), f_vec(theta, X, s, LAM)
         gl, gv = grad_loop(theta, X, s, LAM), grad_vec(theta, X, s, LAM)
-        f_err.append(abs(fl - fv) / max(1.0, abs(fl)))
-        g_err.append(np.linalg.norm(gl - gv) / max(1.0, np.linalg.norm(gl)))
-    print(f"max relative objective error over {n_tests} random thetas: {max(f_err):.3e}")
-    print(f"max relative gradient  error over {n_tests} random thetas: {max(g_err):.3e}")
+        rel_f = abs(fl - fv) / max(1.0, abs(fl))
+        rel_g = np.linalg.norm(gl - gv) / max(1.0, np.linalg.norm(gl))
 
-    theta = np.random.default_rng(1).standard_normal(X.shape[0])
+        per_scale.append(dict(
+            scale=float(scale),
+            branch_left=left,
+            branch_middle=middle,
+            branch_right=right,
+            rel_objective_error=float(rel_f),
+            rel_gradient_error=float(rel_g),
+        ))
+        print(f"  scale = {scale:>5g}: branches (z<=-1 / -1<z<0 / z>=0) = "
+              f"{left} / {middle} / {right},  "
+              f"rel. error  f = {rel_f:.2e},  grad = {rel_g:.2e}")
+
+    max_f = max(p["rel_objective_error"] for p in per_scale)
+    max_g = max(p["rel_gradient_error"] for p in per_scale)
+    print(f"  max relative error over all scales: f = {max_f:.2e}, "
+          f"grad = {max_g:.2e}")
+
+    # ---- run times, at a single theta ---------------------------------
+    theta = THETA_SCALE * np.random.default_rng(1).standard_normal(X.shape[0])
     args = (theta, X, s, LAM)
-    t_fl = time_it(f_loop, args, reps=5)
-    t_fv = time_it(f_vec, args, reps=100)
-    t_gl = time_it(grad_loop, args, reps=5)
-    t_gv = time_it(grad_vec, args, reps=100)
-    print(f"avg time  f: loop {t_fl:.3e}s | vec {t_fv:.3e}s | speedup {t_fl/t_fv:.1f}x")
-    print(f"avg time  g: loop {t_gl:.3e}s | vec {t_gv:.3e}s | speedup {t_gl/t_gv:.1f}x")
+    t_fl, t_fl_min = time_it(f_loop, args, reps=5)
+    t_fv, t_fv_min = time_it(f_vec, args, reps=100)
+    t_gl, t_gl_min = time_it(grad_loop, args, reps=5)
+    t_gv, t_gv_min = time_it(grad_vec, args, reps=100)
+    print(f"  median time  f: loop {t_fl:.3e}s | vec {t_fv:.3e}s | "
+          f"speed-up {t_fl/t_fv:.0f}x")
+    print(f"  median time  g: loop {t_gl:.3e}s | vec {t_gv:.3e}s | "
+          f"speed-up {t_gl/t_gv:.0f}x")
 
-    summary = dict(
-        max_rel_objective_error=max(f_err), max_rel_gradient_error=max(g_err),
-        time_f_loop=t_fl, time_f_vec=t_fv, time_grad_loop=t_gl, time_grad_vec=t_gv,
-        speedup_f=t_fl / t_fv, speedup_grad=t_gl / t_gv,
-    )
     with open(RESULTS_DIR / "q2_summary.json", "w") as fh:
-        json.dump(summary, fh, indent=2)
+        json.dump(dict(
+            per_scale=per_scale,
+            max_rel_objective_error=max_f,
+            max_rel_gradient_error=max_g,
+            timing_note="median and min over repeated calls, after 2 warm-up calls",
+            reps_loop=5,
+            reps_vectorized=100,
+            time_f_loop_median=t_fl,
+            time_f_vec_median=t_fv,
+            time_grad_loop_median=t_gl,
+            time_grad_vec_median=t_gv,
+            time_f_loop_min=t_fl_min,
+            time_f_vec_min=t_fv_min,
+            time_grad_loop_min=t_gl_min,
+            time_grad_vec_min=t_gv_min,
+            speedup_f=t_fl / t_fv,
+            speedup_grad=t_gl / t_gv,
+        ), fh, indent=2)
 
-    # figures used in the report (optional)
-    fig, ax = plt.subplots(figsize=(7, 4))
-    trials = np.arange(1, n_tests + 1)
-    ax.semilogy(trials, np.maximum(f_err, 1e-18), "o-", label="Objective")
-    ax.semilogy(trials, np.maximum(g_err, 1e-18), "s-", label="Gradient")
-    ax.set(xlabel="Random test", ylabel="Relative error",
-           title="Loop vs. vectorized", xticks=trials)
-    ax.grid(True, which="both", ls=":"); ax.legend()
-    fig.tight_layout(); fig.savefig(RESULTS_DIR / "q2_numerical_agreement.pdf")
-    plt.close(fig)
-
+    # ---- runtime figure ------------------------------------------------
     fig, ax = plt.subplots(figsize=(7, 4))
     labels = ["Objective\nloop", "Objective\nvectorized",
               "Gradient\nloop", "Gradient\nvectorized"]
     times = [t_fl, t_fv, t_gl, t_gv]
     bars = ax.bar(labels, times)
     ax.set_yscale("log")
-    ax.set(ylabel="Average runtime (s)", title="Runtime comparison")
+    ax.set(ylabel="Median runtime (s)", title="Runtime comparison")
     ax.grid(axis="y", ls=":", alpha=0.5)
     for b, tv in zip(bars, times):
         ax.text(b.get_x() + b.get_width() / 2, tv, f"{tv:.2e}",
                 ha="center", va="bottom")
-    fig.tight_layout(); fig.savefig(RESULTS_DIR / "q2_runtime_comparison.pdf")
+    fig.tight_layout()
+    fig.savefig(RESULTS_DIR / "q2_runtime_comparison.pdf")
     plt.close(fig)
 
 
 # ==================================================================
 # Q3: gradient check
 # ==================================================================
+# The fitting window is chosen from properties of the curve that do NOT
+# involve its slope: the remainder must be above the round-off floor
+# (differences of numbers of size f0 lose digits below ~eps*f0) and below
+# the large-t region where the second-order model stops being accurate.
+# Choosing the window by "slope close to 2" would make the test unable to
+# fail, since a wrong gradient (slope 1) would simply never be reported.
+
+
 def question3(X, s):
     print("\n=== Q3: gradient check ===")
     rng = np.random.default_rng(0)
-    theta = rng.standard_normal(X.shape[0])
+    theta = THETA_SCALE * rng.standard_normal(X.shape[0])
     v = rng.standard_normal(X.shape[0])
-    v /= np.linalg.norm(v)                       # unit direction
+    v /= np.linalg.norm(v)                      # unit direction
+
+    # X^T (theta + t v) = X^T theta + t X^T v, so the two products below are
+    # computed once instead of once per value of t.
+    a = s * (X.T @ theta)
+    b = s * (X.T @ v)
+
+    left, middle, right = branch_counts(a)
+    print(f"  branches (z<=-1 / -1<z<0 / z>=0) = {left} / {middle} / {right}")
 
     f0, g0 = f_and_grad(theta, X, s, LAM)
-    slope_dir = float(v @ g0)
+    directional = float(v @ g0)
+
+    # regularizer along the line: ||theta + t v||^2 = ||theta||^2 + 2t<theta,v> + t^2
+    tt, tv_, vv = float(theta @ theta), float(theta @ v), 1.0
 
     t = np.logspace(-8.0, 0.0, num=101)
-    err = np.array([abs(f_vec(theta + tk * v, X, s, LAM) - f0 - tk * slope_dir)
-                    for tk in t])
+    err = np.array([
+        abs(np.sum(_phi(a + tk * b))
+            + 0.5 * LAM * (tt + 2.0 * tk * tv_ + tk ** 2 * vv)
+            - f0 - tk * directional)
+        for tk in t
+    ])
 
     np.savetxt(RESULTS_DIR / "q3_gradient_check.csv",
-               np.column_stack((t, err)), delimiter=",", header="t,error", comments="")
+               np.column_stack((t, err)), delimiter=",",
+               header="t,error", comments="")
 
-    # slope of the straight part (above the round-off floor, below saturation)
-    mask = (t >= 1e-4) & (t <= 1e-2) & (err > 0)
-    slope, intercept = np.polyfit(np.log10(t[mask]), np.log10(err[mask]), 1)
-    print(f"Estimated log-log slope on [1e-4, 1e-2]: {slope:.4f}")
+    # ---- fit the straight portion --------------------------------------
+    floor = FLOOR_FACTOR * np.finfo(float).eps * abs(f0)
+    mask = (err > floor) & (t <= T_MAX_FIT)
+    slope, _ = np.polyfit(np.log10(t[mask]), np.log10(err[mask]), 1)
+    print(f"  f(theta) = {f0:.3e}, round-off floor ~ {floor:.2e}")
+    print(f"  fit window: t in [{t[mask][0]:.2e}, {t[mask][-1]:.2e}] "
+          f"({int(mask.sum())} points)")
+    print(f"  log-log slope = {slope:.4f}")
 
+    # ---- figure ---------------------------------------------------------
     C = np.median(err[mask] / t[mask] ** 2)
     fig, ax = plt.subplots(figsize=(7, 5))
     ax.loglog(t, err, label="Taylor remainder")
     ax.loglog(t, C * t ** 2, "--", label=r"$O(t^2)$ reference")
+    ax.axhline(floor, color="gray", ls=":", lw=1, label="round-off floor")
+    ax.axvspan(t[mask][0], t[mask][-1], color="gray", alpha=0.12,
+               label="fit window")
     ax.set_xlabel(r"$t$")
     ax.set_ylabel(r"$|f_\lambda(\theta+tv)-f_\lambda(\theta)"
                   r"-t\langle v,\nabla f_\lambda(\theta)\rangle|$")
     ax.set_title("Gradient check")
-    ax.grid(True, which="both", ls=":"); ax.legend()
-    fig.tight_layout(); fig.savefig(RESULTS_DIR / "q3_gradient_check.pdf")
+    ax.grid(True, which="both", ls=":")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(RESULTS_DIR / "q3_gradient_check.pdf")
     plt.close(fig)
 
     with open(RESULTS_DIR / "q3_slope.txt", "w") as fh:
-        fh.write(f"log-log slope on [1e-4, 1e-2]: {slope:.6f}\n")
+        fh.write(f"theta scale: {THETA_SCALE}\n")
+        fh.write(f"branch counts (z<=-1 / -1<z<0 / z>=0): "
+                 f"{left} / {middle} / {right}\n")
+        fh.write(f"f_lambda(theta): {f0:.12e}\n")
+        fh.write(f"round-off floor (={FLOOR_FACTOR}*eps*f0): {floor:.6e}\n")
+        fh.write(f"fit window: t in [{t[mask][0]:.6e}, {t[mask][-1]:.6e}]\n")
+        fh.write(f"log-log slope: {slope:.6f}\n")
 
 
 # ==================================================================
 # Q4: fixed-step gradient descent
 # ==================================================================
-def question4(X, s):
-    print("\n=== Q4: fixed-step gradient descent ===")
-    rng = np.random.default_rng(SEED)
-    theta = rng.standard_normal(X.shape[0])
-    theta0 = theta.copy()
 
-    # sigma_max(X)^2 = largest eigenvalue of X X^T (785 x 785): cheap
-    sigma_max = float(np.sqrt(np.linalg.eigvalsh(X @ X.T)[-1]))
-    L = sigma_max ** 2 + LAM
-    step = 1.0 / L
+"""
+Q4: gradient descent with a fixed constant step size.
 
+run_gd() is the shared GD loop, used both here and by step_size_sweep.py.
+The step size (CHOSEN_C / L) was selected beforehand with that script;
+it is not re-derived here, so this run is deterministic.
+"""
+
+SWEEP_C = [0.5, 1.0, 1.5, 1.9]      # choice of multiple for the grid search of the step size
+SWEEP_ITERS = 500        # iterations per sweep run 
+CHOSEN_C = 1.0           # <-- set this after looking at the sweep output
+ 
+ 
+def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
+    """One gradient descent run with the constant step size alpha = c / L.
+ 
+    Stops on whichever applies: relative gradient tolerance, iteration cap,
+    time cap, or a non-finite value (divergence).
+    Returns (theta, objectives, grad_norms, reason, elapsed).
+    """
+    step = c / L
+    theta = theta0.copy()
+ 
     f, g = f_and_grad(theta, X, s, LAM)
     g0_norm = float(np.linalg.norm(g))
     objectives = [f]
     grad_norms = [g0_norm]
-
+ 
     start = time.perf_counter()
     reason = None
     k = 0
     while True:
-        if grad_norms[-1] <= TOL * g0_norm:
+        if tol is not None and grad_norms[-1] <= tol * g0_norm:
             reason = "gradient_tolerance"
             break
-        if time.perf_counter() - start >= MAX_TIME:
+        if max_iter is not None and k >= max_iter:
+            reason = "iteration_cap"
+            break
+        if max_time is not None and time.perf_counter() - start >= max_time:
             reason = "time_limit"
             break
+ 
         theta = theta - step * g
         k += 1
         f, g = f_and_grad(theta, X, s, LAM)      # one pass per iteration
+        gn = float(np.linalg.norm(g))
+ 
+        if not (np.isfinite(f) and np.isfinite(gn)):
+            objectives.append(f)
+            grad_norms.append(gn)
+            reason = "diverged"
+            break
+ 
         objectives.append(f)
-        grad_norms.append(float(np.linalg.norm(g)))
+        grad_norms.append(gn)
+ 
     elapsed = time.perf_counter() - start
-
-    objectives = np.array(objectives)
-    grad_norms = np.array(grad_norms)
-    print(f"sigma_max = {sigma_max:.6e},  L = {L:.6e},  step = {step:.6e}")
+    return theta, np.array(objectives), np.array(grad_norms), reason, elapsed
+ 
+ 
+def question4(X, s, L):
+    """Q4: gradient descent with a fixed constant step alpha = CHOSEN_C / L.
+ 
+    The step size was chosen beforehand from step_size_sweep.py (not run
+    here, so that this run is fully deterministic and matches the report).
+    """
+    print("\n=== Q4: fixed-step gradient descent ===")
+    theta0 = np.random.default_rng(SEED).standard_normal(X.shape[0])
+    sigma_max = float(np.sqrt(L - LAM))
+    step = CHOSEN_C / L
+ 
+    print(f"sigma_max = {sigma_max:.6e},  L = {L:.6e}")
+    print(f"step = {CHOSEN_C}/L = {step:.6e}")
+ 
+    theta, objectives, grad_norms, reason, elapsed = run_gd(
+        X, s, L, CHOSEN_C, theta0, tol=TOL, max_time=MAX_TIME)
+ 
+    k = objectives.size - 1
+    g0_norm = grad_norms[0]
     print(f"iterations = {k},  time = {elapsed:.2f}s,  stop = {reason}")
     print(f"||g0|| = {g0_norm:.6e},  ||g_final|| = {grad_norms[-1]:.6e}, "
           f"ratio = {grad_norms[-1]/g0_norm:.3e}")
-    print(f"f(theta_0) = {objectives[0]:.6e},  f(theta_final) = {objectives[-1]:.6e}")
-
+    print(f"f(theta_0) = {objectives[0]:.6e},  "
+          f"f(theta_final) = {objectives[-1]:.6e},  "
+          f"f(theta_0)/f(theta_final) = {objectives[0]/objectives[-1]:.3e}")
+ 
     np.savez(RESULTS_DIR / "q4_gd_history.npz",
              iterations=np.arange(k + 1), objectives=objectives,
              gradient_norms=grad_norms, theta0=theta0, theta_final=theta,
-             step_size=step, sigma_max=sigma_max, L=L, lam=LAM, seed=SEED)
+             step_size=step, c=CHOSEN_C, sigma_max=sigma_max, L=L,
+             lam=LAM, seed=SEED)
     np.savetxt(RESULTS_DIR / "q4_gd_history.csv",
                np.column_stack((np.arange(k + 1), objectives, grad_norms)),
                delimiter=",", header="k,objective,gradient_norm", comments="")
     with open(RESULTS_DIR / "q4_stopping_reason.txt", "w") as fh:
-        fh.write(f"Stopping reason: {reason}\nIterations: {k}\n"
-                 f"Elapsed time: {elapsed:.6f} s\n")
+        fh.write(f"Stopping reason: {reason}\n")
+        fh.write(f"Iterations: {k}\n")
+        fh.write(f"Elapsed time: {elapsed:.6f} s\n")
+        fh.write(f"Step size: alpha = {CHOSEN_C}/L = {step:.12e}\n")
+        fh.write("(step size chosen from step_size_sweep.py; "
+                 "see q4_step_size_sweep.txt)\n")
+ 
     return theta, objectives, grad_norms
+
+
+
+
 
 
 # ==================================================================
 # Q5: convergence plots
 # ==================================================================
 def question5(objectives, grad_norms):
-    print("\n=== Q5: convergence plots ===")
+    print("\n=== Q5: convergence plots ===") # no need of prints since graphs are on results?
     k = np.arange(objectives.size)
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
 
-    # Log axes: f decreases by orders of magnitude towards a positive limit,
-    # and ||grad f|| decays (roughly) geometrically -> straight line on a log axis.
+    # graph - log
     axes[0].semilogy(k, objectives)
     axes[0].set(xlabel="Iteration $k$", ylabel=r"$f_\lambda(\theta_k)$",
                 title="Objective value")
@@ -305,6 +439,22 @@ def question5(objectives, grad_norms):
     fig.tight_layout()
     fig.savefig(RESULTS_DIR / "q5_convergence.pdf")
     plt.close(fig)
+
+
+
+    # ASK TAs - no need if we argued well
+    # Also save the gap f(theta_k) - f_best on a log scale for theoretical comparison
+    f_best = float(np.min(objectives))
+    gap = objectives - f_best
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.semilogy(k, np.maximum(gap, 1e-300))
+    ax.set(xlabel="Iteration $k$", ylabel=r'$f_\lambda(\theta_k)-f_{\rm best}$',
+           title="Objective gap to best observed value")
+    ax.grid(True, which="both", ls=":")
+    fig.tight_layout()
+    fig.savefig(RESULTS_DIR / "q5_gap.pdf")
+    plt.close(fig)
+
 
 
 # ==================================================================
@@ -327,18 +477,91 @@ def question7(theta, X_tr, y_tr, X_te, y_te):
 
 
 # ==================================================================
+
+
+
+
+
+def main_student():
+
+    X, y, _, _ = load_data()
+    s = signs(y)
+    L = float(np.linalg.eigvalsh(X @ X.T)[-1]) + LAM
+ 
+    # Same theta_0 for every candidate, so the comparison is fair.
+    theta0 = np.random.default_rng(SEED).standard_normal(X.shape[0])
+ 
+    print(f"L = {L:.6e},  1/L = {1.0/L:.6e},  2/L = {2.0/L:.6e}")
+    print(f"Sweep: {SWEEP_ITERS} iterations each, same theta_0\n")
+ 
+    rows = []
+    for c in SWEEP_C:
+        _, obj, gn, reason, elapsed = run_gd(
+            X, s, L, c, theta0, max_iter=SWEEP_ITERS)
+        ratio = gn[-1] / gn[0] if np.isfinite(gn[-1]) else np.inf
+        rows.append((c, obj[-1], gn[-1], ratio, reason, elapsed))
+        print(f"  c = {c:4.2f} (alpha = {c:.2f}/L): "
+              f"f = {obj[-1]:.6e}, ||g|| = {gn[-1]:.6e}, "
+              f"||g||/||g_0|| = {ratio:.6e}, {reason}")
+ 
+    with open(RESULTS_DIR / "q4_step_size_sweep.txt", "w") as fh:
+        fh.write("Step-size sweep for Question 4 "
+                 "(produced by step_size_sweep.py, not by main.py)\n\n")
+        fh.write(f"lambda = {LAM}\nseed = {SEED}\n")
+        fh.write(f"L = {L:.12e}\n1/L = {1.0/L:.12e}\n2/L = {2.0/L:.12e}\n")
+        fh.write(f"iterations per candidate = {SWEEP_ITERS}\n\n")
+        fh.write("c, f_final, grad_norm_final, "
+                 "grad_norm_final/grad_norm_0, stop_reason, seconds\n")
+        for c, f_last, gn_last, ratio, reason, elapsed in rows:
+            fh.write(f"{c}, {f_last:.12e}, {gn_last:.12e}, "
+                     f"{ratio:.12e}, {reason}, {elapsed:.3f}\n")
+ 
+    print(f"\nWritten to {RESULTS_DIR / 'q4_step_size_sweep.txt'}")
+ 
+ 
+if __name__ == "__main__":
+    main_student()
+ 
+
+
+
+
+
+
+
+
+
 def main():
     X_tr, y_tr, X_te, y_te = load_data()
     s_tr = signs(y_tr)
     print(f"train X {X_tr.shape}, test X {X_te.shape}, lambda = {LAM}")
 
+    L = float(np.linalg.eigvalsh(X_tr @ X_tr.T)[-1]) + LAM # make sure its not computed again!!
+
     question2(X_tr, s_tr)
     question3(X_tr, s_tr)
-    theta_final, objectives, grad_norms = question4(X_tr, s_tr)
+    theta_final, objectives, grad_norms = question4(X_tr, s_tr, L)
     question5(objectives, grad_norms)
+    # question6(L, objectives, grad_norms)
     question7(theta_final, X_tr, y_tr, X_te, y_te)
     print(f"\nAll results written to {RESULTS_DIR}")
 
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

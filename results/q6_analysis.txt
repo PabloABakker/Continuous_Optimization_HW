@@ -1,0 +1,7 @@
+sigma_max = 8.912273e+02
+L = 7.942860e+05
+mu = 5.000000e-03
+condition_number = 1.588572e+08
+theoretical_factor (1 - mu/L) = 9.999999937050e-01
+empirical_ln_slope = -2.415327819968e-04
+empirical_factor = 9.997584963847e-01
