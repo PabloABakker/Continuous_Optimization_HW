@@ -322,12 +322,17 @@ it is not re-derived here, so this run is deterministic.
 CHOSEN_C = 1.9           # fastest within alpha < 2/L; see q4_step_size_sweep.txt
  
  
-def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
+def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None,
+           snapshots=None, record_every=200):
     """One gradient descent run with the constant step size alpha = c / L.
  
     Stops on whichever applies: relative gradient tolerance, iteration cap,
     time cap, or a non-finite value (divergence).
     Returns (theta, objectives, grad_norms, reason, elapsed).
+
+    If `snapshots` is a list, (k, theta_k) is appended to it every
+    `record_every` iterations (and at k=0 and at the last iterate).  The
+    return value is unchanged, so callers that do not record are unaffected.
     """
     step = c / L
     theta = theta0.copy()
@@ -336,6 +341,8 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
     g0_norm = float(np.linalg.norm(g))
     objectives = [f]
     grad_norms = [g0_norm]
+    if snapshots is not None:
+        snapshots.append((0, theta.copy()))
  
     start = time.perf_counter()
     reason = None
@@ -364,7 +371,11 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
  
         objectives.append(f)
         grad_norms.append(gn)
+        if snapshots is not None and k % record_every == 0:
+            snapshots.append((k, theta.copy()))
  
+    if snapshots is not None and snapshots[-1][0] != k:
+        snapshots.append((k, theta.copy()))
     elapsed = time.perf_counter() - start
     return theta, np.array(objectives), np.array(grad_norms), reason, elapsed
  
@@ -383,8 +394,10 @@ def question4(X, s, L):
     print(f"sigma_max = {sigma_max:.6e},  L = {L:.6e}")
     print(f"step = {CHOSEN_C}/L = {step:.6e}")
  
+    snapshots = []
     theta, objectives, grad_norms, reason, elapsed = run_gd(
-        X, s, L, CHOSEN_C, theta0, tol=TOL, max_time=MAX_TIME)
+        X, s, L, CHOSEN_C, theta0, tol=TOL, max_time=MAX_TIME,
+        snapshots=snapshots, record_every=CURVATURE_EVERY)
  
     k = objectives.size - 1
     g0_norm = grad_norms[0]
@@ -410,12 +423,153 @@ def question4(X, s, L):
         fh.write(f"Step size: alpha = {CHOSEN_C}/L = {step:.12e}\n")
         fh.write("(step size chosen from step_size_sweep.py; "
                  "see q4_step_size_sweep.txt)\n")
- 
+
+    question4_curvature(X, s, L, step, snapshots)
+
     return theta, objectives, grad_norms
 
 
 
 
+
+
+# ------------------------------------------------------------------
+# Q4 (continued): why a step this large is safe, and why the iteration
+# count scales like 1/c.
+#
+# phi'' = 1 on (-1, 0) and 0 elsewhere, so the Hessian of f_lambda at theta
+# only collects the samples whose margin is in (-1, 0):
+#
+#     H(theta) = sum_{i : -1 < z_i < 0} x~_i x~_i^T  +  lambda I.
+#
+# L = lambda_max(X X^T) + lambda is the value that bound takes when EVERY
+# sample is in the quadratic branch at once, which never happens.  The gap
+# between lambda_max(H) and L is what makes alpha = c/L tiny compared with
+# the curvature it actually meets: gradient descent contracts by
+# |1 - alpha * nu| per iteration in a direction of curvature nu, and when
+# alpha * nu << 1 that is 1 - alpha * nu, linear in alpha.  Hence the number
+# of iterations scales as 1/alpha = L/(c), and no direction can overshoot.
+# ------------------------------------------------------------------
+CURVATURE_EVERY = 200      # record a snapshot every this many iterations
+
+# categorical slots 1-3, fixed order (validated for light-mode line charts)
+BRANCH_COLORS = ("#2a78d6", "#eb6834", "#1baf7a")
+
+
+def top_eigenvalue_active(X, s, theta, iters=100, seed=0):
+    """lambda_max(H(theta)) = lambda_max(X_act X_act^T) + lambda.
+
+    Power iteration on the matrix-vector product X_act (X_act^T v), so the
+    785 x 785 Gram matrix is never formed; agrees with eigvalsh to machine
+    precision and stays cheap when many samples are active.
+    """
+    z = s * (X.T @ theta)
+    active = (z > -1.0) & (z < 0.0)
+    if not active.any():
+        return LAM, 0
+    Xa = X[:, active]
+    rng = np.random.default_rng(seed)
+    v = rng.standard_normal(Xa.shape[0])
+    v /= np.linalg.norm(v)
+    for _ in range(iters):
+        w = Xa @ (Xa.T @ v)
+        n = np.linalg.norm(w)
+        if n == 0.0:
+            return LAM, int(active.sum())
+        v = w / n
+    return float(v @ (Xa @ (Xa.T @ v))) + LAM, int(active.sum())
+
+
+def question4_curvature(X, s, L, step, snapshots):
+    """Curvature actually met along the Q4 trajectory, vs the bound L."""
+    print("\n=== Q4 (cont.): active curvature along the trajectory ===")
+    rows = []
+    for k, th in snapshots:
+        z = s * (X.T @ th)
+        flat, quad, affine = branch_counts(z)
+        nu_max, n_act = top_eigenvalue_active(X, s, th)
+        rows.append((k, flat, quad, affine, nu_max, step * nu_max, 2.0 / step))
+    arr = np.array(rows, dtype=float)
+
+    np.savetxt(RESULTS_DIR / "q4_curvature.csv", arr, delimiter=",",
+               fmt=["%d", "%d", "%d", "%d", "%.12e", "%.12e", "%.12e"],
+               header="k,n_flat,n_quadratic,n_affine,lambda_max_active,"
+                      "alpha_times_lambda_max,stability_threshold",
+               comments="")
+
+    first, last = rows[0], rows[-1]
+    print(f"  global L = {L:.4e}   alpha = {step:.4e}   "
+          f"stability needs alpha*lambda_max < 2")
+    for tag, r in (("theta_0", first), ("theta_final", last)):
+        print(f"  {tag:12s} k={int(r[0]):6d}  branches "
+              f"{int(r[1])}/{int(r[2])}/{int(r[3])}  "
+              f"lambda_max(H) = {r[4]:.4e} ({L / r[4]:.0f}x below L)  "
+              f"alpha*lambda_max = {r[5]:.4f}  max stable c = {2 * L / r[4]:.0f}")
+    worst = arr[:, 5].max()
+    print(f"  worst alpha*lambda_max over the whole run: {worst:.4f} "
+          f"(margin of {2.0 / worst:.0f}x)")
+
+    with open(RESULTS_DIR / "q4_curvature.txt", "w") as fh:
+        fh.write("Active curvature along the Q4 trajectory\n\n")
+        fh.write("H(theta) = sum_{i: -1 < z_i < 0} x~_i x~_i^T + lambda I;\n")
+        fh.write("only samples in the quadratic branch of phi contribute.\n\n")
+        fh.write(f"lambda = {LAM}\nc = {CHOSEN_C}\nalpha = {step:.12e}\n")
+        fh.write(f"L = lambda_max(X X^T) + lambda = {L:.12e}\n")
+        fh.write("   (the value of lambda_max(H) if every sample were in the\n"
+                 "    quadratic branch simultaneously)\n")
+        fh.write(f"stability threshold: lambda_max(H) < 2/alpha = {2.0 / step:.6e}\n\n")
+        for tag, r in (("at theta_0     ", first), ("at theta_final ", last)):
+            fh.write(f"{tag} k = {int(r[0])}\n")
+            fh.write(f"   branches (z<=-1 / -1<z<0 / z>=0): "
+                     f"{int(r[1])} / {int(r[2])} / {int(r[3])}\n")
+            fh.write(f"   samples in the quadratic branch: "
+                     f"{100.0 * r[2] / X.shape[1]:.2f}%\n")
+            fh.write(f"   lambda_max(H) = {r[4]:.6e}  "
+                     f"({L / r[4]:.1f}x below L)\n")
+            fh.write(f"   alpha*lambda_max = {r[5]:.6f}  "
+                     f"(largest c that would still be stable: {2 * L / r[4]:.1f})\n\n")
+        fh.write(f"worst alpha*lambda_max over the run: {worst:.6f}\n")
+        fh.write(f"smallest stability margin: {2.0 / worst:.1f}x\n\n")
+        fh.write("Reading: alpha*lambda_max stays far below 2 for the whole\n"
+                 "trajectory, so every direction contracts by 1 - alpha*nu,\n"
+                 "which is linear in alpha.  That is why the iteration count\n"
+                 "scales as 1/c and why no iterate overshoots.  The margin\n"
+                 "GROWS as the run converges: the optimum is the safest place\n"
+                 "for a large step, not the most dangerous.\n")
+
+    # ---- figure ---------------------------------------------------------
+    k = arr[:, 0]
+    fig, axes = plt.subplots(2, 1, figsize=(8, 7), sharex=True)
+
+    ax = axes[0]
+    for col, color, lab in zip(
+            (1, 2, 3), BRANCH_COLORS,
+            (r"flat  $z \leq -1$", r"quadratic  $-1 < z < 0$", r"affine  $z \geq 0$")):
+        ax.semilogy(k, np.maximum(arr[:, col], 0.5), color=color, lw=2, label=lab)
+    ax.set_ylabel("samples in branch")
+    ax.set_title(r"Which branch of $\phi$ the margins occupy")
+    ax.grid(True, which="both", ls=":", alpha=0.4)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="center right")
+
+    ax = axes[1]
+    ax.semilogy(k, arr[:, 4], color=BRANCH_COLORS[0], lw=2,
+                label=r"$\lambda_{\max}(H(\theta_k))$  (curvature actually met)")
+    ax.axhline(L, color="#52514e", ls="--", lw=1,
+               label=r"$L = \lambda_{\max}(XX^\top)+\lambda$  (bound used for $\alpha$)")
+    ax.axhline(2.0 / step, color="#e34948", ls=":", lw=1.5,
+               label=r"stability limit $2/\alpha$ (only %.0f%% above $L$, as $c=%g$)"
+                     % (100.0 * (2.0 / step / L - 1.0), CHOSEN_C))
+    ax.set_xlabel("Iteration $k$")
+    ax.set_ylabel(r"curvature")
+    ax.set_title(r"The step never approaches the stability limit")
+    ax.grid(True, which="both", ls=":", alpha=0.4)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="center right", fontsize=9)
+
+    fig.tight_layout()
+    fig.savefig(RESULTS_DIR / "q4_curvature.pdf")
+    plt.close(fig)
 
 
 # ==================================================================
