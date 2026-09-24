@@ -1,5 +1,5 @@
 Stopping reason: gradient_tolerance
-Iterations: 21977
-Elapsed time: 43.570430 s
-Step size: alpha = 1.0/L = 1.258992288980e-06
+Iterations: 11570
+Elapsed time: 25.240553 s
+Step size: alpha = 1.9/L = 2.392085349062e-06
 (step size chosen from step_size_sweep.py; see q4_step_size_sweep.txt)

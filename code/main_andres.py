@@ -319,9 +319,7 @@ The step size (CHOSEN_C / L) was selected beforehand with that script;
 it is not re-derived here, so this run is deterministic.
 """
 
-SWEEP_C = [0.5, 1.0, 1.5, 1.9]      # choice of multiple for the grid search of the step size
-SWEEP_ITERS = 500        # iterations per sweep run 
-CHOSEN_C = 1.0           # <-- set this after looking at the sweep output
+CHOSEN_C = 1.9           # fastest within alpha < 2/L; see q4_step_size_sweep.txt
  
  
 def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
@@ -484,45 +482,6 @@ def question7(theta, X_tr, y_tr, X_te, y_te):
 
 
 
-def main_student():
-
-    X, y, _, _ = load_data()
-    s = signs(y)
-    L = float(np.linalg.eigvalsh(X @ X.T)[-1]) + LAM
- 
-    # Same theta_0 for every candidate, so the comparison is fair.
-    theta0 = np.random.default_rng(SEED).standard_normal(X.shape[0])
- 
-    print(f"L = {L:.6e},  1/L = {1.0/L:.6e},  2/L = {2.0/L:.6e}")
-    print(f"Sweep: {SWEEP_ITERS} iterations each, same theta_0\n")
- 
-    rows = []
-    for c in SWEEP_C:
-        _, obj, gn, reason, elapsed = run_gd(
-            X, s, L, c, theta0, max_iter=SWEEP_ITERS)
-        ratio = gn[-1] / gn[0] if np.isfinite(gn[-1]) else np.inf
-        rows.append((c, obj[-1], gn[-1], ratio, reason, elapsed))
-        print(f"  c = {c:4.2f} (alpha = {c:.2f}/L): "
-              f"f = {obj[-1]:.6e}, ||g|| = {gn[-1]:.6e}, "
-              f"||g||/||g_0|| = {ratio:.6e}, {reason}")
- 
-    with open(RESULTS_DIR / "q4_step_size_sweep.txt", "w") as fh:
-        fh.write("Step-size sweep for Question 4 "
-                 "(produced by step_size_sweep.py, not by main.py)\n\n")
-        fh.write(f"lambda = {LAM}\nseed = {SEED}\n")
-        fh.write(f"L = {L:.12e}\n1/L = {1.0/L:.12e}\n2/L = {2.0/L:.12e}\n")
-        fh.write(f"iterations per candidate = {SWEEP_ITERS}\n\n")
-        fh.write("c, f_final, grad_norm_final, "
-                 "grad_norm_final/grad_norm_0, stop_reason, seconds\n")
-        for c, f_last, gn_last, ratio, reason, elapsed in rows:
-            fh.write(f"{c}, {f_last:.12e}, {gn_last:.12e}, "
-                     f"{ratio:.12e}, {reason}, {elapsed:.3f}\n")
- 
-    print(f"\nWritten to {RESULTS_DIR / 'q4_step_size_sweep.txt'}")
- 
- 
-if __name__ == "__main__":
-    main_student()
  
 
 

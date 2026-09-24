@@ -1,14 +1,61 @@
-Step-size sweep for Question 4 (produced by step_size_sweep.py, not by main.py)
+Step-size selection for Question 4 (produced by step_size_sweep.py, not by main.py)
 
 lambda = 0.005
-seed = 42
 L = 7.942860403140e+05
 1/L = 1.258992288980e-06
 2/L = 2.517984577960e-06
-iterations per candidate = 500
+stopping rule: ||g_k|| <= 0.001 * ||g_0||
 
-c, f_final, grad_norm_final, grad_norm_final/grad_norm_0, stop_reason, seconds
-0.5, 5.229515586704e+03, 3.622615404173e+03, 5.851733346166e-02, iteration_cap, 1.053
-1.0, 3.177967948693e+03, 1.856519494821e+03, 2.998898813033e-02, iteration_cap, 1.034
-1.5, 2.368097111913e+03, 1.327259153198e+03, 2.143966659233e-02, iteration_cap, 0.985
-1.9, 1.999255574119e+03, 1.098956156261e+03, 1.775181096552e-02, iteration_cap, 0.963
+A. SHORT RUNS FROM SEVERAL STARTING POINTS
+   500 iterations, seeds [42, 0, 7]
+   Reported: ||g_k|| / ||g_0|| at each checkpoint.
+
+   seed 42
+     c, k=10, k=50, k=100, k=200, k=500
+     0.5, 8.628227e-01, 4.468049e-01, 2.538772e-01, 1.371062e-01, 5.851733e-02
+     1.0, 7.302216e-01, 2.523304e-01, 1.365033e-01, 7.232210e-02, 2.998899e-02
+     1.5, 6.119131e-01, 1.732149e-01, 9.362364e-02, 4.823006e-02, 2.143967e-02
+     1.9, 5.334748e-01, 1.416941e-01, 7.564448e-02, 3.799792e-02, 1.775181e-02
+     2.5, 4.352163e-01, 1.089826e-01, 5.796917e-02, 2.992420e-02, 1.376580e-02
+     4.0, 2.939002e-01, 7.107588e-02, 3.632296e-02, 2.041630e-02, 9.656404e-03
+
+   seed 0
+     c, k=10, k=50, k=100, k=200, k=500
+     0.5, 9.279870e-01, 6.915370e-01, 5.354936e-01, 3.662599e-01, 2.062743e-01
+     1.0, 8.572602e-01, 5.346862e-01, 3.656407e-01, 2.429694e-01, 1.167171e-01
+     1.5, 7.905155e-01, 4.355183e-01, 2.874641e-01, 1.756889e-01, 8.506969e-02
+     1.9, 7.442851e-01, 3.770018e-01, 2.516332e-01, 1.431552e-01, 6.639936e-02
+     2.5, 6.882537e-01, 3.186603e-01, 2.052802e-01, 1.164136e-01, 4.857117e-02
+     4.0, 5.799950e-01, 2.412468e-01, 1.367065e-01, 8.013293e-02, 3.378224e-02
+
+   seed 7
+     c, k=10, k=50, k=100, k=200, k=500
+     0.5, 8.823257e-01, 5.411246e-01, 3.452200e-01, 2.027526e-01, 9.313265e-02
+     1.0, 7.783560e-01, 3.438895e-01, 2.021675e-01, 1.082672e-01, 5.205167e-02
+     1.5, 6.883117e-01, 2.509172e-01, 1.400753e-01, 8.079468e-02, 3.559395e-02
+     1.9, 6.197817e-01, 2.088603e-01, 1.121844e-01, 6.723983e-02, 2.918111e-02
+     2.5, 5.335247e-01, 1.628196e-01, 9.251859e-02, 5.190476e-02, 2.223283e-02
+     4.0, 3.941871e-01, 1.072115e-01, 6.428973e-02, 3.349005e-02, 1.394649e-02
+
+   ranking at k=500, seed 42 (best first): 4 < 2.5 < 1.9 < 1.5 < 1 < 0.5
+   ranking at k=500, seed 0 (best first): 4 < 2.5 < 1.9 < 1.5 < 1 < 0.5
+   ranking at k=500, seed 7 (best first): 4 < 2.5 < 1.9 < 1.5 < 1 < 0.5
+
+   ranking identical across all seeds: True
+   => the starting point moves the absolute numbers but not the
+      ordering, so a single seed is enough for the selection.
+
+B. FULL RUNS TO THE STOPPING RULE (seed 42)
+   c, iterations_to_tol, final_ratio, increases, stop_reason, seconds
+   0.5, 43947, 9.999925e-04, 0, gradient_tolerance, 84.84
+   1.0, 21977, 9.999766e-04, 0, gradient_tolerance, 42.35
+   1.5, 14654, 9.999187e-04, 0, gradient_tolerance, 30.94
+   1.9, 11570, 9.999915e-04, 0, gradient_tolerance, 24.28
+   2.5, 8795, 9.999550e-04, 0, gradient_tolerance, 18.57
+   4.0, 5500, 9.997888e-04, 0, gradient_tolerance, 12.31
+
+   'increases' counts iterations where ||g_k||/||g_0|| grew;
+   a step that overshoots near the solution would show up there.
+
+   fastest to tolerance: c = 4.0 (5500 iterations)
+   fastest within the 2/L guarantee: c = 1.9 (11570 iterations)
