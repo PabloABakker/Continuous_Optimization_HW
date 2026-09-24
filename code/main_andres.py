@@ -19,15 +19,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat
 
-# ------------------------------------------------------------------
-# Paths (relative to this file, so it works from code/ as required)
-# ------------------------------------------------------------------
+
 CODE_DIR = Path(__file__).resolve().parent
 DATA_DIR = CODE_DIR.parent / "data"
 RESULTS_DIR = CODE_DIR.parent / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-LAM = 0.005            # regularization parameter (fixed by the homework)
+LAM = 0.005           
 SEED = 42              # seed for theta_0 in Q4
 TOL = 1e-3             # relative gradient tolerance in Q4
 MAX_TIME = 3 * 60      # seconds, Q4
@@ -60,7 +58,7 @@ def signs(y):
 # ==================================================================
 # Q2: objective and gradient
 # ==================================================================
-# ---- explicit loops ------------------------------------------------
+
 def f_loop(theta, X, s, lam):
     value = 0.5 * lam * float(theta @ theta)
     for i in range(X.shape[1]):
