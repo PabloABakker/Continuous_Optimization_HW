@@ -628,30 +628,50 @@ def question5(objectives, grad_norms, L):
     fig.savefig(RESULTS_DIR / "q5_convergence.pdf")
     plt.close(fig)
 
-    # ---- the guarantee on its own axis -----------------------------------
-    # On the figure above the bound looks horizontal.  Plotted alone, with the
-    # axis free to fit it, the same curve is a straight decreasing line: a
-    # geometric decay rho^(k/2) is linear on a semilog-y axis, of slope
-    # log10(rho)/2 per iteration.  It is not flat, it is just extremely
-    # shallow -- over the whole run it loses 7e-6 of its value.
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    # ---- the guarantee alone, then with the run on the same axis ---------
+    # Left: the axis is free to fit the bound, and it is plainly a straight
+    # decreasing line (a geometric decay rho^(k/2) is linear on a log axis,
+    # and over a window this narrow log and linear coincide).
+    # Right: the same bound, now sharing an axis with a run that falls three
+    # orders of magnitude.  The bound is still that same straight line -- its
+    # whole variation is 2.7 out of 386887, which is a fraction of a pixel, so
+    # it reads as horizontal.  Nothing about it changed except the scale.
+    # The curved line is the RUN: gradient descent here is not a single
+    # geometric rate, its effective rate degrades as it converges, which is
+    # exactly what a curve on a semilog axis means.
+    drop = 1.0 - bound[-1] / bound[0]
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
+
+    ax = axes[0]
     ax.plot(k, bound, color=THEORY_COLOR, lw=2)
-    ax.set(xlabel="Iteration $k$",
-           ylabel=r"$\sqrt{2Lf_\lambda(\theta_0)}\;\rho^{k/2}$",
-           title=r"Corollary 4.32 bound alone, $\alpha=%g/L$" % CHOSEN_C)
-    # the span is 7e-6 of the value, so a log and a linear axis are
-    # indistinguishable here; linear keeps the tick labels readable.
     ax.yaxis.set_major_formatter(
         matplotlib.ticker.ScalarFormatter(useOffset=False))
-    ax.grid(True, which="both", ls=":", alpha=0.4)
-    ax.set_axisbelow(True)
-    drop = 1.0 - bound[-1] / bound[0]
-    ax.annotate(r"$\rho = 1 - %.2f/\kappa$, $\kappa = %.3g$" % (
+    ax.set(xlabel="Iteration $k$",
+           ylabel=r"$\sqrt{2Lf_\lambda(\theta_0)}\;\rho^{k/2}$",
+           title="Bound alone: a straight line")
+    ax.annotate(r"$\rho = 1 - %.2f/\kappa$,  $\kappa = %.3g$" % (
                     CHOSEN_C * (2 - CHOSEN_C), L / LAM) + "\n"
-                + r"start %.6g $\rightarrow$ end %.6g" % (bound[0], bound[-1]) + "\n"
-                + r"total decrease over the run: %.1e  (%.5f%%)" % (drop, 100 * drop),
-                xy=(0.97, 0.9), xycoords="axes fraction", ha="right", va="top",
+                + r"%.6g $\rightarrow$ %.6g over %d iters" % (
+                    bound[0], bound[-1], objectives.size - 1) + "\n"
+                + r"total decrease %.1e  (%.5f%%)" % (drop, 100 * drop),
+                xy=(0.97, 0.93), xycoords="axes fraction", ha="right", va="top",
                 fontsize=9, color="#52514e")
+
+    ax = axes[1]
+    ax.semilogy(k, grad_norms, color=OBSERVED_COLOR, lw=2, label="observed run")
+    ax.semilogy(k, bound, color=THEORY_COLOR, lw=2, ls="--",
+                label=r"Cor. 4.32 bound, $\alpha=%g/L$" % CHOSEN_C)
+    ax.set(xlabel="Iteration $k$",
+           ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
+           title="Same bound, axis shared with the run")
+    ax.annotate("the bound spans 2.7 units;\nthe axis spans %.0f" % (bound[0] - grad_norms[-1]),
+                xy=(0.5, 0.62), xycoords="axes fraction", ha="center",
+                fontsize=9, color=THEORY_COLOR)
+    ax.legend(frameon=False, loc="center left", fontsize=9)
+
+    for ax in axes:
+        ax.grid(True, which="both", ls=":", alpha=0.4)
+        ax.set_axisbelow(True)
     fig.tight_layout()
     fig.savefig(RESULTS_DIR / "q5_theory_alone.pdf")
     plt.close(fig)
