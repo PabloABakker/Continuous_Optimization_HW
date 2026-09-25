@@ -593,6 +593,9 @@ def question4_curvature(X, s, L, step, snapshots):
 # the horizon where the run reduces the gradient norm by three orders.
 OBSERVED_COLOR = "#2a78d6"
 THEORY_COLOR = "#eb6834"
+# the horizon figure compares the step actually used against alpha = 1/L
+THEORY_C = (1.0, 1.9)
+THEORY_COLORS = ("#eb6834", "#1baf7a")
 
 
 def theory_rho(c, L, mu=LAM):
@@ -628,52 +631,54 @@ def question5(objectives, grad_norms, L):
     fig.savefig(RESULTS_DIR / "q5_convergence.pdf")
     plt.close(fig)
 
-    # ---- the guarantee alone, then with the run on the same axis ---------
-    # Left: the axis is free to fit the bound, and it is plainly a straight
-    # decreasing line (a geometric decay rho^(k/2) is linear on a log axis,
-    # and over a window this narrow log and linear coincide).
-    # Right: the same bound, now sharing an axis with a run that falls three
-    # orders of magnitude.  The bound is still that same straight line -- its
-    # whole variation is 2.7 out of 386887, which is a fraction of a pixel, so
-    # it reads as horizontal.  Nothing about it changed except the scale.
-    # The curved line is the RUN: gradient descent here is not a single
-    # geometric rate, its effective rate degrades as it converges, which is
-    # exactly what a curve on a semilog axis means.
-    drop = 1.0 - bound[-1] / bound[0]
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-
-    ax = axes[0]
-    ax.plot(k, bound, color=THEORY_COLOR, lw=2)
-    ax.yaxis.set_major_formatter(
-        matplotlib.ticker.ScalarFormatter(useOffset=False))
-    ax.set(xlabel="Iteration $k$",
-           ylabel=r"$\sqrt{2Lf_\lambda(\theta_0)}\;\rho^{k/2}$",
-           title="Bound alone: a straight line")
-    ax.annotate(r"$\rho = 1 - %.2f/\kappa$,  $\kappa = %.3g$" % (
-                    CHOSEN_C * (2 - CHOSEN_C), L / LAM) + "\n"
-                + r"%.6g $\rightarrow$ %.6g over %d iters" % (
-                    bound[0], bound[-1], objectives.size - 1) + "\n"
-                + r"total decrease %.1e  (%.5f%%)" % (drop, 100 * drop),
-                xy=(0.97, 0.93), xycoords="axes fraction", ha="right", va="top",
-                fontsize=9, color="#52514e")
-
-    ax = axes[1]
-    ax.semilogy(k, grad_norms, color=OBSERVED_COLOR, lw=2, label="observed run")
-    ax.semilogy(k, bound, color=THEORY_COLOR, lw=2, ls="--",
-                label=r"Cor. 4.32 bound, $\alpha=%g/L$" % CHOSEN_C)
-    ax.set(xlabel="Iteration $k$",
+    # ---- the horizon the guarantee actually needs -------------------------
+    # The bounds only reach the stopping tolerance after ~1e9-1e10 iterations,
+    # so k has to be logarithmic.  The y range is clipped to the band between
+    # the tolerance and the bound's starting value: past the crossing the
+    # bounds fall away steeply and only the crossing point is of interest.
+    # This is also the only scale on which c = 1 and c = 1.9 separate, and
+    # they separate the wrong way round: rho(c) = 1 - c(2-c)/kappa is largest
+    # at c = 1, so the guarantee makes c = 1 the faster of the two, while the
+    # runs make c = 1.9 faster by 1.9x.
+    prefactor = np.sqrt(2.0 * L * objectives[0])
+    target = TOL * grad_norms[0]
+    kk = np.logspace(0, 11.3, 500)
+    K5 = objectives.size - 1
+    fig, ax = plt.subplots(figsize=(8, 4.8))
+    ax.loglog(np.arange(1, grad_norms.size), grad_norms[1:],
+              color=OBSERVED_COLOR, lw=2, label="observed run", zorder=3)
+    marks = [(K5, OBSERVED_COLOR, "run stops\n%s iters" % f"{K5:,}", "center", 0)]
+    for c, col in zip(THEORY_C, THEORY_COLORS):
+        r = theory_rho(c, L)
+        ax.loglog(kk, prefactor * r ** (kk / 2.0), color=col, lw=1.8, ls="--",
+                  label=r"Cor. 4.32 bound, $c=%g$" % c)
+        n = 2.0 * np.log(TOL) / np.log(r)
+        # the two crossings sit close together on a log axis: push their
+        # labels to opposite sides so they do not overlap.
+        side = "right" if c == THEORY_C[0] else "left"
+        marks.append((n, col, r"$c=%g$" % c + "\n%.2g iters" % n, side,
+                      -6 if side == "right" else 6))
+    ax.axhline(target, color="#52514e", ls=":", lw=1.2, zorder=1)
+    for xpos, col, lab, ha, dx in marks:
+        ax.plot([xpos], [target], "o", color=col, ms=6, mec="white", mew=1.2, zorder=4)
+        ax.annotate(lab, xy=(xpos, target), xytext=(dx, -26),
+                    textcoords="offset points", color=col, fontsize=8,
+                    ha=ha, fontweight="bold")
+    ax.set_ylim(target / 12.0, prefactor * 3.0)
+    ax.set_xlim(1, 2e11)
+    ax.annotate(r"stopping rule  $\|\nabla f_\lambda(\theta_k)\|\leq 10^{-3}"
+                r"\|\nabla f_\lambda(\theta_0)\|$",
+                xy=(1.0, target), xytext=(3, 6), textcoords="offset points",
+                color="#52514e", fontsize=8)
+    ax.set(xlabel="Iteration $k$ (log scale)",
            ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
-           title="Same bound, axis shared with the run")
-    ax.annotate("the bound spans 2.7 units;\nthe axis spans %.0f" % (bound[0] - grad_norms[-1]),
-                xy=(0.5, 0.62), xycoords="axes fraction", ha="center",
-                fontsize=9, color=THEORY_COLOR)
-    ax.legend(frameon=False, loc="center left", fontsize=9)
-
-    for ax in axes:
-        ax.grid(True, which="both", ls=":", alpha=0.4)
-        ax.set_axisbelow(True)
+           title="The guarantee is valid, but reaches the tolerance "
+                 r"$\sim\!10^{6}$ times later")
+    ax.grid(True, which="both", ls=":", alpha=0.4)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="lower left", fontsize=9)
     fig.tight_layout()
-    fig.savefig(RESULTS_DIR / "q5_theory_alone.pdf")
+    fig.savefig(RESULTS_DIR / "q5_theory_horizon.pdf")
     plt.close(fig)
 
     K = objectives.size - 1
