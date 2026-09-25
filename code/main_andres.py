@@ -575,40 +575,184 @@ def question4_curvature(X, s, L, step, snapshots):
 # ==================================================================
 # Q5: convergence plots
 # ==================================================================
-def question5(objectives, grad_norms):
-    print("\n=== Q5: convergence plots ===") # no need of prints since graphs are on results?
-    k = np.arange(objectives.size)
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+# Corollary 4.32 is stated for alpha = 1/L.  Redoing the proof with a general
+# constant step alpha = c/L gives the contraction factor
+#
+#     rho(c) = 1 - c(2 - c)/kappa,        kappa = L/mu,   c in (0, 2),
+#
+# which reduces to 1 - 1/kappa at c = 1.  With mu = lambda (question 1) and
+# f_lambda >= 0, so that f_lambda(theta_0) - f_lambda(theta*) <= f_lambda(theta_0):
+#
+#     f(theta_k) - f(theta*) <= rho^k f(theta_0)
+#     ||grad f(theta_k)||    <= sqrt(2 L f(theta_0)) * rho^(k/2).
+#
+# The gradient bound needs no theta*, so it is the one plotted against the run.
+THEORY_C = (1.0, 1.9)
+THEORY_COLORS = ("#eb6834", "#1baf7a")
+OBSERVED_COLOR = "#2a78d6"
 
-    # graph - log
-    axes[0].semilogy(k, objectives)
+
+
+def _sweep_iterations():
+    """Iterations-to-tolerance per c from step_size_sweep.py, if it has run."""
+    path = RESULTS_DIR / "q4_step_size_histories.npz"
+    if not path.exists():
+        return None
+    d = np.load(path)
+    out = {}
+    for c in d["candidates"]:
+        g = d[f"grad_norms_c{c:g}"]
+        if g[-1] <= TOL * g[0]:
+            out[float(c)] = int(g.size - 1)
+    return out
+
+
+def theory_rho(c, L, mu=LAM):
+    """Contraction factor of Corollary 4.32 generalised to alpha = c/L."""
+    return 1.0 - c * (2.0 - c) / (L / mu)
+
+
+def question5(objectives, grad_norms, L):
+    print("\n=== Q5: convergence plots ===")
+    k = np.arange(objectives.size)
+    f0 = objectives[0]
+    K5 = objectives.size - 1
+    kappa = L / LAM
+    prefactor = np.sqrt(2.0 * L * f0)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
+
+    axes[0].semilogy(k, objectives, color=OBSERVED_COLOR, lw=2)
     axes[0].set(xlabel="Iteration $k$", ylabel=r"$f_\lambda(\theta_k)$",
-                title="Objective value")
-    axes[1].semilogy(k, grad_norms)
+                title="Objective value (observed)")
+
+    axes[1].semilogy(k, grad_norms, color=OBSERVED_COLOR, lw=2,
+                     label="observed", zorder=3)
+    # over 10^4 iterations the two bounds differ by ~0.003% and plot on top of
+    # each other; they only separate on the 10^9 scale (see q5_theory_horizon).
+    for c, col in zip(THEORY_C, THEORY_COLORS):
+        rho = theory_rho(c, L)
+        axes[1].semilogy(k, prefactor * rho ** (k / 2.0), color=col, lw=1.8, ls="--",
+                         label=r"Cor. 4.32 bound, $c=%g$" % c)
+    axes[1].annotate("the two bounds coincide at this scale\n"
+                     r"(they differ by %.3f%% over $k\leq%d$)"
+                     % (100 * abs(theory_rho(1.0, L) ** (K5 / 2.0)
+                                  / theory_rho(1.9, L) ** (K5 / 2.0) - 1), K5),
+                     xy=(0.5, 0.88), xycoords="axes fraction",
+                     ha="center", fontsize=8, color="#52514e")
     axes[1].set(xlabel="Iteration $k$",
                 ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
-                title="Gradient norm")
+                title="Gradient norm: run vs guarantee")
+    axes[1].legend(frameon=False, loc="center left", fontsize=9)
     for ax in axes:
-        ax.grid(True, which="both", ls=":")
+        ax.grid(True, which="both", ls=":", alpha=0.4)
+        ax.set_axisbelow(True)
     fig.tight_layout()
     fig.savefig(RESULTS_DIR / "q5_convergence.pdf")
     plt.close(fig)
 
-
-
-    # ASK TAs - no need if we argued well
-    # Also save the gap f(theta_k) - f_best on a log scale for theoretical comparison
+    # ---- objective gap, against the same guarantee -----------------------
     f_best = float(np.min(objectives))
-    gap = objectives - f_best
-    fig, ax = plt.subplots(figsize=(7, 4))
-    ax.semilogy(k, np.maximum(gap, 1e-300))
-    ax.set(xlabel="Iteration $k$", ylabel=r'$f_\lambda(\theta_k)-f_{\rm best}$',
-           title="Objective gap to best observed value")
-    ax.grid(True, which="both", ls=":")
+    gap = np.maximum(objectives - f_best, 1e-300)
+    fig, ax = plt.subplots(figsize=(7.5, 4.5))
+    ax.semilogy(k, gap, color=OBSERVED_COLOR, lw=2,
+                label=r"observed $f_\lambda(\theta_k)-f_{\rm best}$"
+                      "\n(underestimates the true gap)", zorder=3)
+    for c, col in zip(THEORY_C, THEORY_COLORS):
+        ax.semilogy(k, f0 * theory_rho(c, L) ** k, color=col, lw=1.8, ls="--",
+                    label=r"Thm. 4.31 bound, $c=%g$" % c)
+    ax.set(xlabel="Iteration $k$", ylabel=r"$f_\lambda(\theta_k)-f_\lambda(\theta^*)$",
+           title="Objective gap: run vs guarantee")
+    ax.grid(True, which="both", ls=":", alpha=0.4)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="center left", fontsize=9)
     fig.tight_layout()
     fig.savefig(RESULTS_DIR / "q5_gap.pdf")
     plt.close(fig)
 
+    # ---- the horizon the guarantee actually needs -------------------------
+    # The bounds only reach the stopping tolerance after ~1e9-1e10 iterations,
+    # so k has to be logarithmic.  The y range is clipped to the band between
+    # the tolerance and the bound's starting value: past the crossing the
+    # bounds fall away steeply and only the crossing point is of interest.
+    target = TOL * grad_norms[0]
+    kk = np.logspace(0, 11.3, 500)
+    fig, ax = plt.subplots(figsize=(8, 4.8))
+    ax.loglog(np.arange(1, grad_norms.size), grad_norms[1:],
+              color=OBSERVED_COLOR, lw=2, label="observed run", zorder=3)
+    # (x, colour, label, horizontal alignment, x-offset in points)
+    marks = [(K5, OBSERVED_COLOR, "run stops\n%s iters" % f"{K5:,}", "center", 0)]
+    for c, col in zip(THEORY_C, THEORY_COLORS):
+        rho = theory_rho(c, L)
+        ax.loglog(kk, prefactor * rho ** (kk / 2.0), color=col, lw=1.8, ls="--",
+                  label=r"Cor. 4.32 bound, $c=%g$" % c)
+        n = 2.0 * np.log(TOL) / np.log(rho)
+        # the two crossings sit close together on a log axis: push their
+        # labels to opposite sides so they do not overlap.
+        side = "right" if c == THEORY_C[0] else "left"
+        marks.append((n, col, r"$c=%g$" % c + "\n%.2g iters" % n, side,
+                      -6 if side == "right" else 6))
+    ax.axhline(target, color="#52514e", ls=":", lw=1.2, zorder=1)
+    for xpos, col, lab, ha, dx in marks:
+        ax.plot([xpos], [target], "o", color=col, ms=6, mec="white", mew=1.2, zorder=4)
+        ax.annotate(lab, xy=(xpos, target), xytext=(dx, -26),
+                    textcoords="offset points", color=col, fontsize=8,
+                    ha=ha, fontweight="bold")
+    ax.set_ylim(target / 12.0, prefactor * 3.0)
+    ax.set_xlim(1, 2e11)
+    ax.annotate(r"stopping rule  $\|\nabla f_\lambda(\theta_k)\|\leq 10^{-3}"
+                r"\|\nabla f_\lambda(\theta_0)\|$",
+                xy=(1.0, target), xytext=(3, 6), textcoords="offset points",
+                color="#52514e", fontsize=8)
+    ax.set(xlabel="Iteration $k$ (log scale)",
+           ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
+           title="The guarantee is valid, but reaches the tolerance "
+                 r"$\sim\!10^{6}$ times later")
+    ax.grid(True, which="both", ls=":", alpha=0.4)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="lower left", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(RESULTS_DIR / "q5_theory_horizon.pdf")
+    plt.close(fig)
+
+    # ---- the numbers, for Question 6 -------------------------------------
+    K = objectives.size - 1
+    with open(RESULTS_DIR / "q5_theory_comparison.txt", "w") as fh:
+        fh.write("Guaranteed rate vs observed run\n\n")
+        fh.write(f"L = {L:.12e}\nmu = lambda = {LAM}\n")
+        fh.write(f"kappa = L/mu = {kappa:.12e}\n")
+        fh.write(f"f_lambda(theta_0) = {f0:.12e}\n")
+        fh.write(f"sqrt(2 L f(theta_0)) = {prefactor:.12e}   "
+                 f"(already {prefactor / grad_norms[0]:.2f}x the true ||g_0|| "
+                 f"= {grad_norms[0]:.6e})\n\n")
+        fh.write(f"run: K = {K} iterations at c = {CHOSEN_C}, "
+                 f"||g_K|| = {grad_norms[-1]:.6e}\n\n")
+        for c in THEORY_C:
+            rho = theory_rho(c, L)
+            need = int(np.ceil(2.0 * np.log(TOL) / np.log(rho)))
+            fh.write(f"c = {c}:  rho = 1 - {c * (2 - c):.2f}/kappa = {rho:.15f}\n")
+            fh.write(f"   gradient bound at k = {K}: {prefactor * rho ** (K / 2.0):.6e}"
+                     f"   (observed {grad_norms[-1]:.6e})\n")
+            fh.write(f"   gap bound at k = {K}:      {f0 * rho ** K:.6e}\n")
+            fh.write(f"   iterations the bound needs for ||g_k|| <= {TOL:g}||g_0||: "
+                     f"{need:,}\n\n")
+        r1, r19 = (theory_rho(c, L) for c in (1.0, 1.9))
+        n1 = 2.0 * np.log(TOL) / np.log(r1)
+        n19 = 2.0 * np.log(TOL) / np.log(r19)
+        fh.write(f"The bound makes c = 1 faster than c = 1.9 by {n19 / n1:.1f}x;\n")
+        obs = _sweep_iterations()
+        if obs is not None and 1.0 in obs and CHOSEN_C in obs:
+            fh.write(f"the runs make c = {CHOSEN_C} faster than c = 1 by "
+                     f"{obs[1.0] / obs[CHOSEN_C]:.2f}x "
+                     f"({obs[1.0]} vs {obs[CHOSEN_C]} iterations, "
+                     f"from q4_step_size_sweep.txt).\n")
+        else:
+            fh.write("(run step_size_sweep.py for the measured comparison "
+                     "across c.)\n")
+        fh.write(f"The bound overstates the iteration count at c = {CHOSEN_C} "
+                 f"by a factor of {n19 / K:,.0f}.\n")
+    print(f"  kappa = {kappa:.3e}; guarantee needs {2.0 * np.log(TOL) / np.log(theory_rho(CHOSEN_C, L)):,.0f} "
+          f"iterations at c = {CHOSEN_C}, run took {K}")
 
 
 # ==================================================================
@@ -656,7 +800,7 @@ def main():
     question2(X_tr, s_tr)
     question3(X_tr, s_tr)
     theta_final, objectives, grad_norms = question4(X_tr, s_tr, L)
-    question5(objectives, grad_norms)
+    question5(objectives, grad_norms, L)
     # question6(L, objectives, grad_norms)
     question7(theta_final, X_tr, y_tr, X_te, y_te)
     print(f"\nAll results written to {RESULTS_DIR}")
