@@ -628,6 +628,34 @@ def question5(objectives, grad_norms, L):
     fig.savefig(RESULTS_DIR / "q5_convergence.pdf")
     plt.close(fig)
 
+    # ---- the guarantee on its own axis -----------------------------------
+    # On the figure above the bound looks horizontal.  Plotted alone, with the
+    # axis free to fit it, the same curve is a straight decreasing line: a
+    # geometric decay rho^(k/2) is linear on a semilog-y axis, of slope
+    # log10(rho)/2 per iteration.  It is not flat, it is just extremely
+    # shallow -- over the whole run it loses 7e-6 of its value.
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    ax.plot(k, bound, color=THEORY_COLOR, lw=2)
+    ax.set(xlabel="Iteration $k$",
+           ylabel=r"$\sqrt{2Lf_\lambda(\theta_0)}\;\rho^{k/2}$",
+           title=r"Corollary 4.32 bound alone, $\alpha=%g/L$" % CHOSEN_C)
+    # the span is 7e-6 of the value, so a log and a linear axis are
+    # indistinguishable here; linear keeps the tick labels readable.
+    ax.yaxis.set_major_formatter(
+        matplotlib.ticker.ScalarFormatter(useOffset=False))
+    ax.grid(True, which="both", ls=":", alpha=0.4)
+    ax.set_axisbelow(True)
+    drop = 1.0 - bound[-1] / bound[0]
+    ax.annotate(r"$\rho = 1 - %.2f/\kappa$, $\kappa = %.3g$" % (
+                    CHOSEN_C * (2 - CHOSEN_C), L / LAM) + "\n"
+                + r"start %.6g $\rightarrow$ end %.6g" % (bound[0], bound[-1]) + "\n"
+                + r"total decrease over the run: %.1e  (%.5f%%)" % (drop, 100 * drop),
+                xy=(0.97, 0.9), xycoords="axes fraction", ha="right", va="top",
+                fontsize=9, color="#52514e")
+    fig.tight_layout()
+    fig.savefig(RESULTS_DIR / "q5_theory_alone.pdf")
+    plt.close(fig)
+
     K = objectives.size - 1
     print(f"  kappa = {L / LAM:.3e},  rho = 1 - {CHOSEN_C * (2 - CHOSEN_C):.2f}/kappa")
     print(f"  bound on ||g_K|| = {bound[-1]:.4e}   observed = {grad_norms[-1]:.4e}"
