@@ -735,7 +735,6 @@ def main():
     question3(X_tr, s_tr)
     theta_final, objectives, grad_norms = question4(X_tr, s_tr, L)
     question5(objectives, grad_norms, L)
-    # question6(L, objectives, grad_norms)
     question7(theta_final, X_tr, y_tr, X_te, y_te)
     print(f"\nAll results written to {RESULTS_DIR}")
 
