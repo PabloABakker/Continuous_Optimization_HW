@@ -632,51 +632,50 @@ def question5(objectives, grad_norms, L):
     plt.close(fig)
 
     # ---- the horizon the guarantee actually needs -------------------------
-    # The bounds only reach the stopping tolerance after ~1e9-1e10 iterations,
-    # so k has to be logarithmic.  The y range is clipped to the band between
-    # the tolerance and the bound's starting value: past the crossing the
-    # bounds fall away steeply and only the crossing point is of interest.
-    # This is also the only scale on which c = 1 and c = 1.9 separate, and
-    # they separate the wrong way round: rho(c) = 1 - c(2-c)/kappa is largest
-    # at c = 1, so the guarantee makes c = 1 the faster of the two, while the
-    # runs make c = 1.9 faster by 1.9x.
+    # A geometric decay rho^(k/2) is a STRAIGHT line on a log-y axis only when
+    # k is linear: against log k it bends.  So k is linear here and runs out to
+    # where the slower of the two bounds reaches the tolerance.  Each guarantee
+    # is then exactly the straight line it is, and the two slopes can be read
+    # off and compared -- which is where they disagree with the experiment:
+    # rho(c) = 1 - c(2-c)/kappa is largest at c = 1, so the c = 1 line is the
+    # steeper of the two and the guarantee calls c = 1 the faster step, while
+    # the runs make c = 1.9 faster by 1.9x.  The run itself ends at k = 11570,
+    # which on this axis is indistinguishable from the origin.
     prefactor = np.sqrt(2.0 * L * objectives[0])
     target = TOL * grad_norms[0]
-    kk = np.logspace(0, 11.3, 500)
     K5 = objectives.size - 1
+    k_end = max(2.0 * np.log(TOL) / np.log(theory_rho(c, L)) for c in THEORY_C)
+    kk = np.linspace(0.0, k_end * 1.08, 600)
+
     fig, ax = plt.subplots(figsize=(8, 4.8))
-    ax.loglog(np.arange(1, grad_norms.size), grad_norms[1:],
-              color=OBSERVED_COLOR, lw=2, label="observed run", zorder=3)
-    marks = [(K5, OBSERVED_COLOR, "run stops\n%s iters" % f"{K5:,}", "center", 0)]
     for c, col in zip(THEORY_C, THEORY_COLORS):
         r = theory_rho(c, L)
-        ax.loglog(kk, prefactor * r ** (kk / 2.0), color=col, lw=1.8, ls="--",
-                  label=r"Cor. 4.32 bound, $c=%g$" % c)
+        ax.semilogy(kk, prefactor * r ** (kk / 2.0), color=col, lw=2,
+                    label=r"Cor. 4.32 bound, $c=%g$" % c)
         n = 2.0 * np.log(TOL) / np.log(r)
-        # the two crossings sit close together on a log axis: push their
-        # labels to opposite sides so they do not overlap.
-        side = "right" if c == THEORY_C[0] else "left"
-        marks.append((n, col, r"$c=%g$" % c + "\n%.2g iters" % n, side,
-                      -6 if side == "right" else 6))
+        ax.plot([n], [target], "o", color=col, ms=6, mec="white", mew=1.2, zorder=4)
+        ax.annotate(r"$c=%g$ reaches it" % c + "\nat %.2g iters" % n,
+                    xy=(n, target), xytext=(-8, 14), textcoords="offset points",
+                    color=col, fontsize=8, ha="right", fontweight="bold")
     ax.axhline(target, color="#52514e", ls=":", lw=1.2, zorder=1)
-    for xpos, col, lab, ha, dx in marks:
-        ax.plot([xpos], [target], "o", color=col, ms=6, mec="white", mew=1.2, zorder=4)
-        ax.annotate(lab, xy=(xpos, target), xytext=(dx, -26),
-                    textcoords="offset points", color=col, fontsize=8,
-                    ha=ha, fontweight="bold")
-    ax.set_ylim(target / 12.0, prefactor * 3.0)
-    ax.set_xlim(1, 2e11)
-    ax.annotate(r"stopping rule  $\|\nabla f_\lambda(\theta_k)\|\leq 10^{-3}"
-                r"\|\nabla f_\lambda(\theta_0)\|$",
-                xy=(1.0, target), xytext=(3, 6), textcoords="offset points",
+    ax.annotate(r"stopping rule  $10^{-3}\|\nabla f_\lambda(\theta_0)\|$",
+                xy=(0, target), xytext=(6, -14), textcoords="offset points",
                 color="#52514e", fontsize=8)
-    ax.set(xlabel="Iteration $k$ (log scale)",
+    # the whole run lives inside the first pixel of this axis
+    ax.axvline(K5, color=OBSERVED_COLOR, lw=1.5)
+    ax.annotate("the run reaches it\nat %s iters" % f"{K5:,}",
+                xy=(K5, prefactor * 0.30), xytext=(26, 0),
+                textcoords="offset points", color=OBSERVED_COLOR, fontsize=8,
+                fontweight="bold", va="center",
+                arrowprops=dict(arrowstyle="->", color=OBSERVED_COLOR, lw=1.2))
+    ax.set_ylim(target / 8.0, prefactor * 2.0)
+    ax.set_xlim(-k_end * 0.03, k_end * 1.08)
+    ax.set(xlabel="Iteration $k$",
            ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
-           title="The guarantee is valid, but reaches the tolerance "
-                 r"$\sim\!10^{6}$ times later")
+           title="The guarantee, run out to where it reaches the tolerance")
     ax.grid(True, which="both", ls=":", alpha=0.4)
     ax.set_axisbelow(True)
-    ax.legend(frameon=False, loc="lower left", fontsize=9)
+    ax.legend(frameon=False, loc="upper right", fontsize=9)
     fig.tight_layout()
     fig.savefig(RESULTS_DIR / "q5_theory_horizon.pdf")
     plt.close(fig)
