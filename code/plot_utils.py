@@ -36,7 +36,7 @@ def plot_convergence(objectives, grad_norms, bound, c, results_dir):
 
     axes[0].semilogy(k, objectives, color=OBSERVED_COLOR, lw=2)
     axes[0].set(xlabel="Iteration $k$", ylabel=r"$f_\lambda(\theta_k)$",
-                title="Objective value")
+                title="Objective function")
 
     axes[1].semilogy(k, grad_norms, color=OBSERVED_COLOR, lw=2,
                      label="observed", zorder=3)
