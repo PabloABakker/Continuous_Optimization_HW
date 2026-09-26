@@ -593,9 +593,6 @@ def question4_curvature(X, s, L, step, snapshots):
 # the horizon where the run reduces the gradient norm by three orders.
 OBSERVED_COLOR = "#2a78d6"
 THEORY_COLOR = "#eb6834"
-# the horizon figure compares the step actually used against alpha = 1/L
-THEORY_C = (1.0, 1.9)
-THEORY_COLORS = ("#eb6834", "#1baf7a")
 
 
 def theory_rho(c, L, mu=LAM):
@@ -632,35 +629,32 @@ def question5(objectives, grad_norms, L):
     plt.close(fig)
 
     # ---- the horizon the guarantee actually needs -------------------------
-    # The bounds only reach the stopping tolerance after ~1e9-1e10 iterations,
-    # so k has to be logarithmic.  The y range is clipped to the band between
-    # the tolerance and the bound's starting value: past the crossing the
-    # bounds fall away steeply and only the crossing point is of interest.
-    # This is also the only scale on which c = 1 and c = 1.9 separate, and
-    # they separate the wrong way round: rho(c) = 1 - c(2-c)/kappa is largest
-    # at c = 1, so the guarantee makes c = 1 the faster of the two, while the
-    # runs make c = 1.9 faster by 1.9x.
+    # The bound only reaches the stopping tolerance after ~1e10 iterations, so
+    # k has to be logarithmic to show the run and the crossing on one axis.
+    # The y range is clipped to the band between the tolerance and the bound's
+    # starting value: past the crossing the bound falls away steeply and only
+    # the crossing point is of interest.
     prefactor = np.sqrt(2.0 * L * objectives[0])
     target = TOL * grad_norms[0]
     kk = np.logspace(0, 11.3, 500)
     K5 = objectives.size - 1
+    rho = theory_rho(CHOSEN_C, L)
+    n_needed = 2.0 * np.log(TOL) / np.log(rho)
+
     fig, ax = plt.subplots(figsize=(8, 4.8))
     ax.loglog(np.arange(1, grad_norms.size), grad_norms[1:],
               color=OBSERVED_COLOR, lw=2, label="observed run", zorder=3)
-    marks = [(K5, OBSERVED_COLOR, "run stops\n%s iters" % f"{K5:,}", "center", 0)]
-    for c, col in zip(THEORY_C, THEORY_COLORS):
-        r = theory_rho(c, L)
-        ax.loglog(kk, prefactor * r ** (kk / 2.0), color=col, lw=1.8, ls="--",
-                  label=r"Cor. 4.32 bound, $c=%g$" % c)
-        n = 2.0 * np.log(TOL) / np.log(r)
-        # the two crossings sit close together on a log axis: push their
-        # labels to opposite sides so they do not overlap.
-        side = "right" if c == THEORY_C[0] else "left"
-        marks.append((n, col, r"$c=%g$" % c + "\n%.2g iters" % n, side,
-                      -6 if side == "right" else 6))
+    ax.loglog(kk, prefactor * rho ** (kk / 2.0), color=THEORY_COLOR, lw=1.8,
+              ls="--", label=r"Cor. 4.32 bound, $\alpha=%g/L$" % CHOSEN_C)
     ax.axhline(target, color="#52514e", ls=":", lw=1.2, zorder=1)
-    for xpos, col, lab, ha, dx in marks:
-        ax.plot([xpos], [target], "o", color=col, ms=6, mec="white", mew=1.2, zorder=4)
+    # the bound's crossing sits near the right edge, so its label is anchored
+    # leftward to keep it inside the axes
+    for xpos, col, lab, ha, dx in (
+            (K5, OBSERVED_COLOR, "run stops\n%s iters" % f"{K5:,}", "center", 0),
+            (n_needed, THEORY_COLOR,
+             "bound gets there\nat %.2g iters" % n_needed, "right", -6)):
+        ax.plot([xpos], [target], "o", color=col, ms=6, mec="white", mew=1.2,
+                zorder=4)
         ax.annotate(lab, xy=(xpos, target), xytext=(dx, -26),
                     textcoords="offset points", color=col, fontsize=8,
                     ha=ha, fontweight="bold")
