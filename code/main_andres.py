@@ -19,6 +19,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat
 
+# figures for Q5 (imported after the Agg backend is selected above)
+from plot_utils import plot_convergence, plot_theory_horizon
+
 # ------------------------------------------------------------------
 # Paths (relative to this file, so it works from code/ as required)
 # ------------------------------------------------------------------
@@ -575,24 +578,13 @@ def question4_curvature(X, s, L, step, snapshots):
 # ==================================================================
 # Q5: convergence plots
 # ==================================================================
-# Corollary 4.32 is stated for alpha = 1/L.  Redoing the proof with a general
-# constant step alpha = c/L gives the contraction factor
-#
-#     rho(c) = 1 - c(2 - c)/kappa,        kappa = L/mu,   c in (0, 2),
-#
-# which reduces to 1 - 1/kappa at c = 1.  With mu = lambda (question 1) and
-# f_lambda >= 0, so that f_lambda(theta_0) - f_lambda(theta*) <= f_lambda(theta_0),
-#
-#     ||grad f(theta_k)|| <= sqrt(2 L f(theta_0)) * rho^(k/2).
-#
-# This needs no theta*, so it can be drawn straight onto the run.  On a
-# semilog-y axis a geometric decay is a straight line of slope log10(rho) per
-# iteration; here rho = 1 - 0.19/kappa, so the slope is about -5e-10 per
-# iteration and the guarantee is visually flat over the 1e4 iterations of the
-# run.  That flatness IS the result: the bound permits almost no progress on
-# the horizon where the run reduces the gradient norm by three orders.
-OBSERVED_COLOR = "#2a78d6"
-THEORY_COLOR = "#eb6834"
+# We plot the objective function and its gradient against iterations for both 
+# our experimental and the theoretical results generalised from the notes - 
+# Corollary 4.32 (see question 6)
+# The method is directly run on question 4 and we use results from theta_final,
+#  objectives, grad_norms
+
+
 
 
 def theory_rho(c, L, mu=LAM):
@@ -601,79 +593,20 @@ def theory_rho(c, L, mu=LAM):
 
 
 def question5(objectives, grad_norms, L):
+    """Q5: plot the run from Question 4 against the Corollary 4.32 guarantee.
+
+    Nothing is re-run here: `objectives` and `grad_norms` are the histories
+    recorded during the Q4 descent.  The figures themselves live in
+    plot_utils.py.
+    """
     print("\n=== Q5: convergence plots ===")
     k = np.arange(objectives.size)
     rho = theory_rho(CHOSEN_C, L)
-    bound = np.sqrt(2.0 * L * objectives[0]) * rho ** (k / 2.0)
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-
-    axes[0].semilogy(k, objectives, color=OBSERVED_COLOR, lw=2)
-    axes[0].set(xlabel="Iteration $k$", ylabel=r"$f_\lambda(\theta_k)$",
-                title="Objective value")
-
-    axes[1].semilogy(k, grad_norms, color=OBSERVED_COLOR, lw=2,
-                     label="observed", zorder=3)
-    axes[1].semilogy(k, bound, color=THEORY_COLOR, lw=1.8, ls="--",
-                     label=r"Cor. 4.32 bound, $\alpha=%g/L$" % CHOSEN_C)
-    axes[1].set_ylim(grad_norms[-1] / 3.0, bound[0] * 4.0)
-    axes[1].set(xlabel="Iteration $k$",
-                ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
-                title="Gradient norm: run vs guarantee")
-    axes[1].legend(frameon=False, loc="lower left", fontsize=9)
-    for ax in axes:
-        ax.grid(True, which="both", ls=":", alpha=0.4)
-        ax.set_axisbelow(True)
-    fig.tight_layout()
-    fig.savefig(RESULTS_DIR / "q5_convergence.pdf")
-    plt.close(fig)
-
-    # ---- the horizon the guarantee actually needs -------------------------
-    # The bound only reaches the stopping tolerance after ~1e10 iterations, so
-    # k has to be logarithmic to show the run and the crossing on one axis.
-    # The y range is clipped to the band between the tolerance and the bound's
-    # starting value: past the crossing the bound falls away steeply and only
-    # the crossing point is of interest.
     prefactor = np.sqrt(2.0 * L * objectives[0])
-    target = TOL * grad_norms[0]
-    kk = np.logspace(0, 11.3, 500)
-    K5 = objectives.size - 1
-    rho = theory_rho(CHOSEN_C, L)
-    n_needed = 2.0 * np.log(TOL) / np.log(rho)
+    bound = prefactor * rho ** (k / 2.0)
 
-    fig, ax = plt.subplots(figsize=(8, 4.8))
-    ax.loglog(np.arange(1, grad_norms.size), grad_norms[1:],
-              color=OBSERVED_COLOR, lw=2, label="observed run", zorder=3)
-    ax.loglog(kk, prefactor * rho ** (kk / 2.0), color=THEORY_COLOR, lw=1.8,
-              ls="--", label=r"Cor. 4.32 bound, $\alpha=%g/L$" % CHOSEN_C)
-    ax.axhline(target, color="#52514e", ls=":", lw=1.2, zorder=1)
-    # the bound's crossing sits near the right edge, so its label is anchored
-    # leftward to keep it inside the axes
-    for xpos, col, lab, ha, dx in (
-            (K5, OBSERVED_COLOR, "run stops\n%s iters" % f"{K5:,}", "center", 0),
-            (n_needed, THEORY_COLOR,
-             "bound gets there\nat %.2g iters" % n_needed, "right", -6)):
-        ax.plot([xpos], [target], "o", color=col, ms=6, mec="white", mew=1.2,
-                zorder=4)
-        ax.annotate(lab, xy=(xpos, target), xytext=(dx, -26),
-                    textcoords="offset points", color=col, fontsize=8,
-                    ha=ha, fontweight="bold")
-    ax.set_ylim(target / 12.0, prefactor * 3.0)
-    ax.set_xlim(1, 2e11)
-    ax.annotate(r"stopping rule  $\|\nabla f_\lambda(\theta_k)\|\leq 10^{-3}"
-                r"\|\nabla f_\lambda(\theta_0)\|$",
-                xy=(1.0, target), xytext=(3, 6), textcoords="offset points",
-                color="#52514e", fontsize=8)
-    ax.set(xlabel="Iteration $k$ (log scale)",
-           ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
-           title="The guarantee is valid, but reaches the tolerance "
-                 r"$\sim\!10^{6}$ times later")
-    ax.grid(True, which="both", ls=":", alpha=0.4)
-    ax.set_axisbelow(True)
-    ax.legend(frameon=False, loc="lower left", fontsize=9)
-    fig.tight_layout()
-    fig.savefig(RESULTS_DIR / "q5_theory_horizon.pdf")
-    plt.close(fig)
+    plot_convergence(objectives, grad_norms, bound, CHOSEN_C, RESULTS_DIR)
+    plot_theory_horizon(grad_norms, prefactor, rho, CHOSEN_C, TOL, RESULTS_DIR)
 
     K = objectives.size - 1
     print(f"  kappa = {L / LAM:.3e},  rho = 1 - {CHOSEN_C * (2 - CHOSEN_C):.2f}/kappa")
