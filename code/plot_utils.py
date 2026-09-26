@@ -97,8 +97,7 @@ def plot_theory_horizon(grad_norms, prefactor, rho, c, tol, results_dir):
                 color=RULE_COLOR, fontsize=8)
     ax.set(xlabel="Iteration $k$ (log scale)",
            ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
-           title="The guarantee is valid, but reaches the tolerance "
-                 r"$\sim\!10^{6}$ times later")
+           title="Convergence over the full horizon")
     ax.grid(True, which="both", ls=":", alpha=0.4)
     ax.set_axisbelow(True)
     ax.legend(frameon=False, loc="lower left", fontsize=9)

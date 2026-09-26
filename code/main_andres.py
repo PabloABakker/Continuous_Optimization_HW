@@ -585,13 +585,6 @@ def question4_curvature(X, s, L, step, snapshots):
 #  objectives, grad_norms
 
 
-
-
-def theory_rho(c, L, mu=LAM):
-    """Contraction factor of Corollary 4.32 generalised to alpha = c/L."""
-    return 1.0 - c * (2.0 - c) / (L / mu)
-
-
 def question5(objectives, grad_norms, L):
     """Q5: plot the run from Question 4 against the Corollary 4.32 guarantee.
 
@@ -600,21 +593,17 @@ def question5(objectives, grad_norms, L):
     plot_utils.py.
     """
     print("\n=== Q5: convergence plots ===")
+    # set parameters
     k = np.arange(objectives.size)
-    rho = theory_rho(CHOSEN_C, L)
+    c = CHOSEN_C
+    rho = 1.0 - c * (2.0 - c) / (L / LAM)   # mu = lambda, from Q1
     prefactor = np.sqrt(2.0 * L * objectives[0])
     bound = prefactor * rho ** (k / 2.0)
 
-    plot_convergence(objectives, grad_norms, bound, CHOSEN_C, RESULTS_DIR)
-    plot_theory_horizon(grad_norms, prefactor, rho, CHOSEN_C, TOL, RESULTS_DIR)
-
-    K = objectives.size - 1
-    print(f"  kappa = {L / LAM:.3e},  rho = 1 - {CHOSEN_C * (2 - CHOSEN_C):.2f}/kappa")
-    print(f"  bound on ||g_K|| = {bound[-1]:.4e}   observed = {grad_norms[-1]:.4e}"
-          f"   (factor {bound[-1] / grad_norms[-1]:,.0f})")
-    print(f"  guarantee needs {2.0 * np.log(TOL) / np.log(rho):,.0f} iterations; "
-          f"run took {K}")
-
+    # plot zoomed results
+    plot_convergence(objectives, grad_norms, bound, c, RESULTS_DIR)
+    # plot overall theoretical results
+    plot_theory_horizon(grad_norms, prefactor, rho, c, TOL, RESULTS_DIR)
 
 # ==================================================================
 # Q7: classification
