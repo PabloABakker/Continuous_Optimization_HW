@@ -41,7 +41,7 @@ def plot_convergence(objectives, grad_norms, bound, c, results_dir):
     axes[1].semilogy(k, grad_norms, color=OBSERVED_COLOR, lw=2,
                      label="observed", zorder=3)
     axes[1].semilogy(k, bound, color=THEORY_COLOR, lw=1.8, ls="--",
-                     label=r"Cor. 4.32 bound, $\alpha=%g/L$" % c)
+                     label=r"theoretical bound, $\alpha=%g/L$" % c)
     axes[1].set_ylim(grad_norms[-1] / 3.0, bound[0] * 4.0)
     axes[1].set(xlabel="Iteration $k$",
                 ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
@@ -74,7 +74,7 @@ def plot_theory_horizon(grad_norms, prefactor, rho, c, tol, results_dir):
     ax.loglog(np.arange(1, grad_norms.size), grad_norms[1:],
               color=OBSERVED_COLOR, lw=2, label="observed run", zorder=3)
     ax.loglog(kk, prefactor * rho ** (kk / 2.0), color=THEORY_COLOR, lw=1.8,
-              ls="--", label=r"Cor. 4.32 bound, $\alpha=%g/L$" % c)
+              ls="--", label=r"theoretical bound, $\alpha=%g/L$" % c)
     ax.axhline(target, color=RULE_COLOR, ls=":", lw=1.2, zorder=1)
 
     # the bound's crossing sits near the right edge, so its label is anchored
