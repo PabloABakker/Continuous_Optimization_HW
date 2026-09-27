@@ -5,39 +5,39 @@
       "branch_left": 0,
       "branch_middle": 10645,
       "branch_right": 2020,
-      "rel_objective_error": 2.1799547962294703e-15,
-      "rel_gradient_error": 8.519915742319411e-15
+      "rel_objective_error": 1.998291896543681e-15,
+      "rel_gradient_error": 1.4003003579241578e-16
     },
     {
       "scale": 0.1,
       "branch_left": 1792,
       "branch_middle": 4084,
       "branch_right": 6789,
-      "rel_objective_error": 4.935577425355238e-15,
-      "rel_gradient_error": 3.537487871216433e-14
+      "rel_objective_error": 5.3304236193836556e-15,
+      "rel_gradient_error": 1.9601532187801656e-16
     },
     {
       "scale": 1.0,
       "branch_left": 7521,
       "branch_middle": 223,
       "branch_right": 4921,
-      "rel_objective_error": 0.0,
-      "rel_gradient_error": 2.787599716991036e-14
+      "rel_objective_error": 2.2125732499233926e-16,
+      "rel_gradient_error": 1.807028978543156e-16
     }
   ],
-  "max_rel_objective_error": 4.935577425355238e-15,
-  "max_rel_gradient_error": 3.537487871216433e-14,
+  "max_rel_objective_error": 5.3304236193836556e-15,
+  "max_rel_gradient_error": 1.9601532187801656e-16,
   "timing_note": "median and min over repeated calls, after 2 warm-up calls",
   "reps_loop": 5,
   "reps_vectorized": 100,
-  "time_f_loop_median": 0.007481500040739775,
-  "time_f_vec_median": 0.0008260840550065041,
-  "time_grad_loop_median": 0.017374542076140642,
-  "time_grad_vec_median": 0.0018354167696088552,
-  "time_f_loop_min": 0.007213999982923269,
-  "time_f_vec_min": 0.0007640826515853405,
-  "time_grad_loop_min": 0.017261874862015247,
-  "time_grad_vec_min": 0.0017349589616060257,
-  "speedup_f": 9.05658449088558,
-  "speedup_grad": 9.466265299430233
+  "time_f_loop_median": 0.022256080999795813,
+  "time_f_vec_median": 0.0038348404996213503,
+  "time_grad_loop_median": 0.04452981400027056,
+  "time_grad_vec_median": 0.008107982499950595,
+  "time_f_loop_min": 0.022003035999659915,
+  "time_f_vec_min": 0.0034563310000521597,
+  "time_grad_loop_min": 0.04016516999945452,
+  "time_grad_vec_min": 0.007084393000695854,
+  "speedup_f": 5.803652329736625,
+  "speedup_grad": 5.49209547511257
 }
