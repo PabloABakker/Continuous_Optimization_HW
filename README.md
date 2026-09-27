@@ -52,7 +52,6 @@ does not pay for the search.
 | `q4_stopping_reason.txt` | **The stopping reason**, the iteration count, the elapsed time, the step size, and the initial and final values of the objective and the gradient norm. |
 | `q4_step_size_sweep.txt` | The step-size search: the ranking of the candidates from three starting points, and the iterations each needs to reach the stopping rule. Written by `step_size_sweep.py`. |
 | `q4_step_size_comparison.pdf` | Gradient-norm decay for each candidate step size. Written by `step_size_sweep.py`. |
-| `q4_step_size_histories.npz` | Full histories behind that figure, so it can be redrawn without re-running the search. |
 
 ### Question 5 — convergence plots
 

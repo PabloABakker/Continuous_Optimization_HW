@@ -126,15 +126,6 @@ def make_plot(results, all_c):
     fig.savefig(RESULTS_DIR / "q4_step_size_comparison.pdf")
     plt.close(fig)
 
-def save_histories(results, all_c):
-    """Keep the full curves so the figure can be redrawn without re-running."""
-    payload = {}
-    for c in all_c:
-        payload[f"grad_norms_c{c:g}"] = results[c]["grad_norms"]
-        payload[f"objectives_c{c:g}"] = results[c]["objectives"]
-    payload["candidates"] = np.array(all_c)
-    np.savez(RESULTS_DIR / "q4_step_size_histories.npz", **payload)
-
 def write_report(L, orderings, identical, results, all_c):
     """
     A: the ranking of the candidates does not depend on the starting point.
@@ -202,8 +193,7 @@ def main():
     table, orderings, identical = short_runs(X, s, L, all_c)
     results = long_runs(X, s, L, all_c)
     make_plot(results, all_c)
-    save_histories(results, all_c)
-    write_report(L, orderings, identical, results, all_c)      
+    write_report(L, orderings, identical, results, all_c)
     print(f"\nWritten to {RESULTS_DIR}")
 
 
