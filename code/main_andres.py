@@ -325,11 +325,12 @@ CHOSEN_C = 1.9           # fastest within alpha < 2/L; see q4_step_size_sweep.tx
  
  
 def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
-    """One gradient descent run with the constant step size alpha = c / L.
+    """ 
+    Gradient descent run with the constant step size alpha = c / L.
  
     Stops on whichever applies: relative gradient tolerance, iteration cap,
     time cap, or a non-finite value (divergence).
-    Returns (theta, objectives, grad_norms, reason, elapsed).
+    Returns: (theta, objectives, grad_norms, reason, elapsed).
 
     """
     step = c / L
@@ -356,7 +357,7 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
  
         theta = theta - step * g
         k += 1
-        f, g = f_and_grad(theta, X, s, LAM)      # one pass per iteration
+        f, g = f_and_grad(theta, X, s, LAM)      
         gn = float(np.linalg.norm(g))
  
         if not (np.isfinite(f) and np.isfinite(gn)):
@@ -373,18 +374,17 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
  
  
 def question4(X, s, L):
-    """Q4: gradient descent with a fixed constant step alpha = CHOSEN_C / L.
+    """
+    Q4: gradient descent with a fixed constant step alpha = CHOSEN_C / L.
  
-    The step size was chosen beforehand from step_size_sweep.py (not run
-    here, so that this run is fully deterministic and matches the report).
+    Stops on whichever applies: relative gradient tolerance, iteration cap,
+    time cap, or a non-finite value (divergence).
+    Returns: (theta, objectives, grad_norms, reason, elapsed).
     """
     print("\n=== Q4: fixed-step gradient descent ===")
     theta0 = np.random.default_rng(SEED).standard_normal(X.shape[0])
     sigma_max = float(np.sqrt(L - LAM))
     step = CHOSEN_C / L
- 
-    print(f"sigma_max = {sigma_max:.6e},  L = {L:.6e}")
-    print(f"step = {CHOSEN_C}/L = {step:.6e}")
  
     theta, objectives, grad_norms, reason, elapsed = run_gd(
         X, s, L, CHOSEN_C, theta0, tol=TOL, max_time=MAX_TIME)
@@ -437,7 +437,9 @@ def question4(X, s, L):
 
 
 def question5(objectives, grad_norms, L):
-    """Q5: plot the run from Question 4 against the Corollary 4.32 guarantee.
+    """
+    Q5: plot the run from Question 4 with the theoretical guarantee for the gradient
+
 
     Nothing is re-run here: `objectives` and `grad_norms` are the histories
     recorded during the Q4 descent.  The figures themselves live in
