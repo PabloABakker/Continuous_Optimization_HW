@@ -374,7 +374,7 @@ def question4(X, s, L):
     # saves in results
     np.savez(RESULTS_DIR / "q4_gd_history.npz",
              iterations=np.arange(k + 1), objectives=objectives,
-             gradient_norms=grad_norms, theta0=theta0, theta_final=theta,
+             gradient_norms=grad_norms, theta0=theta0,
              step_size=step, c=CHOSEN_C, sigma_max=sigma_max, L=L,
              lam=LAM, seed=SEED)
     np.savetxt(RESULTS_DIR / "q4_gd_history.csv",
