@@ -390,13 +390,8 @@ def question4(X, s, L):
         X, s, L, CHOSEN_C, theta0, tol=TOL, max_time=MAX_TIME)
  
     k = objectives.size - 1
-    g0_norm = grad_norms[0]
-    print(f"iterations = {k},  time = {elapsed:.2f}s,  stop = {reason}")
-    print(f"||g0|| = {g0_norm:.6e},  ||g_final|| = {grad_norms[-1]:.6e}, "
-          f"ratio = {grad_norms[-1]/g0_norm:.3e}")
-    print(f"f(theta_0) = {objectives[0]:.6e},  "
-          f"f(theta_final) = {objectives[-1]:.6e},  "
-          f"f(theta_0)/f(theta_final) = {objectives[0]/objectives[-1]:.3e}")
+    print(f"iterations = {k},  time = {elapsed:.2f}s,  stop = {reason}"
+          f"   (details in q4_stopping_reason.txt)")
  
     np.savez(RESULTS_DIR / "q4_gd_history.npz",
              iterations=np.arange(k + 1), objectives=objectives,
@@ -405,14 +400,24 @@ def question4(X, s, L):
              lam=LAM, seed=SEED)
     np.savetxt(RESULTS_DIR / "q4_gd_history.csv",
                np.column_stack((np.arange(k + 1), objectives, grad_norms)),
-               delimiter=",", header="k,objective,gradient_norm", comments="")
+               delimiter=",", fmt=["%d", "%.18e", "%.18e"],
+               header="k,objective,gradient_norm", comments="")
     with open(RESULTS_DIR / "q4_stopping_reason.txt", "w") as fh:
         fh.write(f"Stopping reason: {reason}\n")
         fh.write(f"Iterations: {k}\n")
-        fh.write(f"Elapsed time: {elapsed:.6f} s\n")
+        fh.write(f"Elapsed time: {elapsed:.2f} s   (limit {MAX_TIME:.0f} s)\n")
         fh.write(f"Step size: alpha = {CHOSEN_C}/L = {step:.12e}\n")
+        fh.write(f"L = {L:.12e}   sigma_max(X) = {sigma_max:.12e}   "
+                 f"lambda = {LAM}   seed = {SEED}\n")
         fh.write("(step size chosen from step_size_sweep.py; "
-                 "see q4_step_size_sweep.txt)\n")
+                 "see q4_step_size_sweep.txt)\n\n")
+        fh.write(f"stopping rule: ||g_k|| <= {TOL:g} * ||g_0||\n\n")
+        fh.write(f"Objective       f(theta_0)     = {objectives[0]:.6e}\n")
+        fh.write(f"                f(theta_final) = {objectives[-1]:.6e}"
+                 f"     (ratio {objectives[0] / objectives[-1]:.3e})\n")
+        fh.write(f"Gradient norm   ||g_0||        = {grad_norms[0]:.6e}\n")
+        fh.write(f"                ||g_final||    = {grad_norms[-1]:.6e}"
+                 f"     (ratio {grad_norms[-1] / grad_norms[0]:.3e})\n")
 
 
     return theta, objectives, grad_norms
