@@ -313,15 +313,11 @@ def question3(X, s):
 # ==================================================================
 # Q4: fixed-step gradient descent
 # ==================================================================
+# Q4: gradient descent with a fixed constant step size.
+# run_gd() is the shared GD loop, used both here and by step_size_sweep.py.
+# The step size (CHOSEN_C / L) was selected beforehand in step_size_sweep.py
 
-"""
-Q4: gradient descent with a fixed constant step size.
-
-run_gd() is the shared GD loop, used both here and by step_size_sweep.py.
-The step size (CHOSEN_C / L) was selected beforehand in step_size_sweep.py
-"""
-
-CHOSEN_C = 1.9           # fastest within alpha < 2/L; see q4_step_size_sweep.txt
+CHOSEN_C = 1.9           # fastest within alpha < 2/L --> see q4_step_size_sweep.txt
  
  
 def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
@@ -331,7 +327,6 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
     Stops on whichever applies: relative gradient tolerance, iteration cap,
     time cap, or a non-finite value (divergence).
     Returns: (theta, objectives, grad_norms, reason, elapsed).
-
     """
     step = c / L
     theta = theta0.copy()
@@ -390,9 +385,9 @@ def question4(X, s, L):
         X, s, L, CHOSEN_C, theta0, tol=TOL, max_time=MAX_TIME)
  
     k = objectives.size - 1
-    print(f"iterations = {k},  time = {elapsed:.2f}s,  stop = {reason}"
-          f"   (details in q4_stopping_reason.txt)")
- 
+
+
+    # saves in results
     np.savez(RESULTS_DIR / "q4_gd_history.npz",
              iterations=np.arange(k + 1), objectives=objectives,
              gradient_norms=grad_norms, theta0=theta0, theta_final=theta,
@@ -453,10 +448,10 @@ def question5(objectives, grad_norms, L):
     prefactor = np.sqrt(2.0 * L * objectives[0])
     bound = prefactor * rho ** (k / 2.0)
 
-    # plot zoomed results
+    # plot results - functions in utils
     plot_convergence(objectives, grad_norms, bound, c, RESULTS_DIR)
-    # plot overall theoretical results
     plot_theory_horizon(grad_norms, prefactor, rho, c, TOL, RESULTS_DIR)
+
 
 # ==================================================================
 # Q7: classification
