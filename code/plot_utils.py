@@ -113,11 +113,8 @@ def plot_theory_horizon(grad_norms, prefactor, rho, c, tol, results_dir):
     target = tol * grad_norms[0]
     kk = np.logspace(0, 11.3, 500)
     K = grad_norms.size - 1
-    # k at which the bound reaches the stopping rule.  Solve
-    # prefactor * rho^(k/2) = target for k.  Note the bound starts at
-    # sqrt(2 L f(theta_0)), which is well above ||g_0||, so it has further to
-    # fall than a factor of tol: using 2 ln(tol)/ln(rho) would mark the wrong
-    # point, namely where the bound reaches tol times its own initial value.
+    # k where the bound meets the stopping rule: solve prefactor*rho^(k/2) = target.
+    # Not 2 ln(tol)/ln(rho): the bound starts above ||g_0||, so it falls further.
     n_needed = 2.0 * np.log(target / prefactor) / np.log(rho)
 
     fig, ax = plt.subplots(figsize=(8, 4.8))
