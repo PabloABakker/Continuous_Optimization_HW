@@ -1,11 +1,12 @@
 """
-Figures for Question 5.
+Figures and file output for Questions 4 and 5.
 
-Kept apart from main_andres.py so that question5() reads as what it does
-(compute the guarantee, draw two figures) rather than as sixty lines of
-matplotlib.  Nothing here imports main_andres: every quantity a figure needs
-is passed in, so the two modules stay independent and these functions can be
-called on a saved history without running gradient descent again:
+Kept apart from main_andres.py so that question4() and question5() read as
+what they do -- run the method, compute the guarantee -- rather than as
+sixty lines of matplotlib and twenty of file writing.  Nothing here imports
+main_andres: every quantity is passed in, so the two modules stay
+independent and the figures can be redrawn from a saved history without
+running gradient descent again:
 
     import numpy as np, plot_utils
     h = np.load("../results/q4_gd_history.npz")
@@ -22,6 +23,48 @@ import matplotlib.pyplot as plt
 OBSERVED_COLOR = "#2a78d6"
 THEORY_COLOR = "#eb6834"
 RULE_COLOR = "#52514e"
+
+
+def save_q4_results(results_dir, k, objectives, grad_norms, theta0, theta_final,
+                    reason, elapsed, *, step, c, sigma_max, L, lam, seed,
+                    tol, max_time):
+    """Write the three files Question 4 asks for.
+
+    q4_gd_history.csv is the per-iteration record the question requires:
+    one row per iterate k = 0 .. K, the initial point included.
+    q4_gd_history.npz repeats it with theta_0, theta_final and the run's
+    constants.  q4_stopping_reason.txt carries the stopping reason and the
+    summary values the write-up cites, so they need not be dug out of the
+    first and last rows of an 11572-line file.
+
+    The configuration is keyword-only, so the call site names each constant.
+    """
+    np.savez(results_dir / "q4_gd_history.npz",
+             iterations=np.arange(k + 1), objectives=objectives,
+             gradient_norms=grad_norms, theta0=theta0, theta_final=theta_final,
+             step_size=step, c=c, sigma_max=sigma_max, L=L, lam=lam, seed=seed)
+
+    np.savetxt(results_dir / "q4_gd_history.csv",
+               np.column_stack((np.arange(k + 1), objectives, grad_norms)),
+               delimiter=",", fmt=["%d", "%.18e", "%.18e"],
+               header="k,objective,gradient_norm", comments="")
+
+    with open(results_dir / "q4_stopping_reason.txt", "w") as fh:
+        fh.write(f"Stopping reason: {reason}\n")
+        fh.write(f"Iterations: {k}\n")
+        fh.write(f"Elapsed time: {elapsed:.2f} s   (limit {max_time:.0f} s)\n")
+        fh.write(f"Step size: alpha = {c}/L = {step:.12e}\n")
+        fh.write(f"L = {L:.12e}   sigma_max(X) = {sigma_max:.12e}   "
+                 f"lambda = {lam}   seed = {seed}\n")
+        fh.write("(step size chosen from step_size_sweep.py; "
+                 "see q4_step_size_sweep.txt)\n\n")
+        fh.write(f"stopping rule: ||g_k|| <= {tol:g} * ||g_0||\n\n")
+        fh.write(f"Objective       f(theta_0)     = {objectives[0]:.6e}\n")
+        fh.write(f"                f(theta_final) = {objectives[-1]:.6e}"
+                 f"     (ratio {objectives[0] / objectives[-1]:.3e})\n")
+        fh.write(f"Gradient norm   ||g_0||        = {grad_norms[0]:.6e}\n")
+        fh.write(f"                ||g_final||    = {grad_norms[-1]:.6e}"
+                 f"     (ratio {grad_norms[-1] / grad_norms[0]:.3e})\n")
 
 
 def plot_convergence(objectives, grad_norms, bound, c, results_dir):

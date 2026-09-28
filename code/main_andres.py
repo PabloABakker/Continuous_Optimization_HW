@@ -20,7 +20,7 @@ import numpy as np
 from scipy.io import loadmat
 
 # figures for Q5 (imported after the Agg backend is selected above)
-from plot_utils import plot_convergence, plot_theory_horizon
+from plot_utils import save_q4_results, plot_convergence, plot_theory_horizon
 
 # ------------------------------------------------------------------
 # Paths (relative to this file, so it works from code/ as required)
@@ -118,7 +118,6 @@ def grad_vec(theta, X, s, lam):
 
 
 def f_and_grad(theta, X, s, lam):
-    """Both quantities from a single product X^T theta (no redundant work)."""
     z = s * (X.T @ theta)
     f = np.sum(_phi(z)) + 0.5 * lam * (theta @ theta)
     g = X @ (s * _dphi(z)) + lam * theta
@@ -328,18 +327,22 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
     time cap, or a non-finite value (divergence).
     Returns: (theta, objectives, grad_norms, reason, elapsed).
     """
+    # parameters
     step = c / L
     theta = theta0.copy()
- 
+
+    # initialisation
     f, g = f_and_grad(theta, X, s, LAM)
     g0_norm = float(np.linalg.norm(g))
     objectives = [f]
     grad_norms = [g0_norm]
  
-    start = time.perf_counter()
+    start = time.perf_counter()     
     reason = None
     k = 0
-    while True:
+    # iterations
+    while True:     
+        # check stopping reason
         if tol is not None and grad_norms[-1] <= tol * g0_norm:
             reason = "gradient_tolerance"
             break
@@ -349,22 +352,24 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
         if max_time is not None and time.perf_counter() - start >= max_time:
             reason = "time_limit"
             break
- 
+
+        # compute results
         theta = theta - step * g
         k += 1
         f, g = f_and_grad(theta, X, s, LAM)      
         gn = float(np.linalg.norm(g))
- 
+
+        # safeguard for inf and NaN
         if not (np.isfinite(f) and np.isfinite(gn)):
             objectives.append(f)
             grad_norms.append(gn)
             reason = "diverged"
             break
- 
+        # save computations
         objectives.append(f)
         grad_norms.append(gn)
  
-    elapsed = time.perf_counter() - start
+    elapsed = time.perf_counter() - start                         # total time
     return theta, np.array(objectives), np.array(grad_norms), reason, elapsed
  
  
@@ -377,43 +382,23 @@ def question4(X, s, L):
     Returns: (theta, objectives, grad_norms, reason, elapsed).
     """
     print("\n=== Q4: fixed-step gradient descent ===")
+    # parameters
     theta0 = np.random.default_rng(SEED).standard_normal(X.shape[0])
     sigma_max = float(np.sqrt(L - LAM))
     step = CHOSEN_C / L
- 
+
+    # run gradient descent
     theta, objectives, grad_norms, reason, elapsed = run_gd(
         X, s, L, CHOSEN_C, theta0, tol=TOL, max_time=MAX_TIME)
  
-    k = objectives.size - 1
+    k = objectives.size - 1   # vectorisation at 0
 
 
     # saves in results
-    np.savez(RESULTS_DIR / "q4_gd_history.npz",
-             iterations=np.arange(k + 1), objectives=objectives,
-             gradient_norms=grad_norms, theta0=theta0, theta_final=theta,
-             step_size=step, c=CHOSEN_C, sigma_max=sigma_max, L=L,
-             lam=LAM, seed=SEED)
-    np.savetxt(RESULTS_DIR / "q4_gd_history.csv",
-               np.column_stack((np.arange(k + 1), objectives, grad_norms)),
-               delimiter=",", fmt=["%d", "%.18e", "%.18e"],
-               header="k,objective,gradient_norm", comments="")
-    with open(RESULTS_DIR / "q4_stopping_reason.txt", "w") as fh:
-        fh.write(f"Stopping reason: {reason}\n")
-        fh.write(f"Iterations: {k}\n")
-        fh.write(f"Elapsed time: {elapsed:.2f} s   (limit {MAX_TIME:.0f} s)\n")
-        fh.write(f"Step size: alpha = {CHOSEN_C}/L = {step:.12e}\n")
-        fh.write(f"L = {L:.12e}   sigma_max(X) = {sigma_max:.12e}   "
-                 f"lambda = {LAM}   seed = {SEED}\n")
-        fh.write("(step size chosen from step_size_sweep.py; "
-                 "see q4_step_size_sweep.txt)\n\n")
-        fh.write(f"stopping rule: ||g_k|| <= {TOL:g} * ||g_0||\n\n")
-        fh.write(f"Objective       f(theta_0)     = {objectives[0]:.6e}\n")
-        fh.write(f"                f(theta_final) = {objectives[-1]:.6e}"
-                 f"     (ratio {objectives[0] / objectives[-1]:.3e})\n")
-        fh.write(f"Gradient norm   ||g_0||        = {grad_norms[0]:.6e}\n")
-        fh.write(f"                ||g_final||    = {grad_norms[-1]:.6e}"
-                 f"     (ratio {grad_norms[-1] / grad_norms[0]:.3e})\n")
-
+    save_q4_results(RESULTS_DIR, k, objectives, grad_norms, theta0, theta,
+                    reason, elapsed, step=step, c=CHOSEN_C,
+                    sigma_max=sigma_max, L=L, lam=LAM, seed=SEED,
+                    tol=TOL, max_time=MAX_TIME)
 
     return theta, objectives, grad_norms
 
