@@ -300,7 +300,7 @@ def question3(X, s):
 # run_gd() is the shared GD loop, used both here and by step_size_experiment.py.
 # The step size (CHOSEN_C / L) was selected beforehand in step_size_experiment.py
 
-CHOSEN_C = 1.9           # fastest within alpha < 2/L --> see q4_step_size_sweep.txt
+CHOSEN_C = 1.9           # fastest within alpha < 2/L --> see q4_step_size_experiment.txt
  
  
 def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):

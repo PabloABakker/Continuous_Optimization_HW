@@ -2,7 +2,7 @@
 Step-size selection for Question 4. Ran before submission to get CHOSEN_C. 
 Not run by teachers, or imported/called by main.py.
 
-Writes  ../results/q4_step_size_sweep.txt
+Writes  ../results/q4_step_size_experiment.txt
         ../results/q4_step_size_comparison.pdf 
 
 
@@ -133,7 +133,7 @@ def write_report(L, orderings, identical, results, all_c):
     The per-checkpoint tables behind experiment 1 stay on the console; what is
     recorded here is the ranking they produce.
     """
-    with open(RESULTS_DIR / "q4_step_size_sweep.txt", "w") as fh:
+    with open(RESULTS_DIR / "q4_step_size_experiment.txt", "w") as fh:
         fh.write("Step-size selection for Question 4 "
                  "(produced by step_size_experiment.py, not by main_andres.py)\n\n")
         fh.write(f"lambda = {LAM}\nL = {L:.12e}\n2/L = {2.0 / L:.12e}\n")
