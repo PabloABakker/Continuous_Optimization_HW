@@ -58,7 +58,7 @@ def save_q4_results(results_dir, k, objectives, grad_norms, theta0,
         fh.write(f"Step size: alpha = {c}/L = {step:.12e}\n")
         fh.write(f"L = {L:.12e}   sigma_max(X) = {sigma_max:.12e}   "
                  f"lambda = {lam}   seed = {seed}\n")
-        fh.write("(step size chosen from step_size_sweep.py; "
+        fh.write("(step size chosen from step_size_experiment.py; "
                  "see q4_step_size_sweep.txt)\n\n")
         fh.write(f"stopping rule: ||g_k|| <= {tol:g} * ||g_0||\n\n")
         fh.write(f"Objective       f(theta_0)     = {objectives[0]:.6e}\n")

@@ -1,4 +1,4 @@
-Step-size selection for Question 4 (produced by step_size_sweep.py, not by main_andres.py)
+Step-size selection for Question 4 (produced by step_size_experiment.py, not by main_andres.py)
 
 lambda = 0.005
 L = 7.942860403140e+05
@@ -6,7 +6,7 @@ L = 7.942860403140e+05
 stopping rule: ||g_k|| <= 0.001 * ||g_0||
 candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0] beyond it
 
-A. DOES THE RANKING DEPEND ON THE STARTING POINT?
+1. DOES THE RANKING DEPEND ON THE STARTING POINT?
    500 iterations from each of the seeds [42, 0, 7], ranked by ||g_k||/||g_0|| (best first)
 
      seed 42:  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
@@ -17,7 +17,7 @@ A. DOES THE RANKING DEPEND ON THE STARTING POINT?
    => the starting point moves the numbers but not the order,
       so one seed is enough for the selection below.
 
-B. ITERATIONS TO THE STOPPING RULE (seed 42)
+2. ITERATIONS TO THE STOPPING RULE (seed 42)
 
         c   iterations   c * iterations
       0.5        43947            21974

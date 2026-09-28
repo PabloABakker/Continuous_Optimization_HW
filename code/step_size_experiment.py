@@ -128,19 +128,19 @@ def make_plot(results, all_c):
 
 def write_report(L, orderings, identical, results, all_c):
     """
-    A: the ranking of the candidates does not depend on the starting point.
-    B: the iteration count to the stopping rule, and its 1/c scaling.
-    The per-checkpoint tables behind A stay on the console; what is recorded
-    here is the ranking they produce.
+    1: the ranking of the candidates does not depend on the starting point.
+    2: the iteration count to the stopping rule, and its 1/c scaling.
+    The per-checkpoint tables behind experiment 1 stay on the console; what is
+    recorded here is the ranking they produce.
     """
     with open(RESULTS_DIR / "q4_step_size_sweep.txt", "w") as fh:
         fh.write("Step-size selection for Question 4 "
-                 "(produced by step_size_sweep.py, not by main_andres.py)\n\n")
+                 "(produced by step_size_experiment.py, not by main_andres.py)\n\n")
         fh.write(f"lambda = {LAM}\nL = {L:.12e}\n2/L = {2.0 / L:.12e}\n")
         fh.write(f"stopping rule: ||g_k|| <= {TOL:g} * ||g_0||\n")
         fh.write(f"candidates: {SWEEP_C} within 2/L, {PROBE_C} beyond it\n\n")
 
-        fh.write("A. DOES THE RANKING DEPEND ON THE STARTING POINT?\n")
+        fh.write("1. DOES THE RANKING DEPEND ON THE STARTING POINT?\n")
         fh.write(f"   {SHORT_ITERS} iterations from each of the seeds "
                  f"{SHORT_SEEDS}, ranked by ||g_k||/||g_0|| (best first)\n\n")
         for seed, order in zip(SHORT_SEEDS, orderings):
@@ -150,7 +150,7 @@ def write_report(L, orderings, identical, results, all_c):
         fh.write("   => the starting point moves the numbers but not the order,\n"
                  "      so one seed is enough for the selection below.\n\n")
 
-        fh.write(f"B. ITERATIONS TO THE STOPPING RULE (seed {SEED})\n\n")
+        fh.write(f"2. ITERATIONS TO THE STOPPING RULE (seed {SEED})\n\n")
         fh.write("        c   iterations   c * iterations\n")
         products = []
         for c in all_c:

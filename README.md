@@ -17,7 +17,7 @@ it the Q4 gradient descent (~11570 iterations, ~21 s).
 The step-size grid search is a separate script, run once:
 
 ```bash
-python step_size_sweep.py          # ~4 minutes
+python step_size_experiment.py          # ~4 minutes
 ```
 
 It is deliberately **not** called by `main_andres.py`: the chosen step size is
@@ -49,8 +49,8 @@ does not pay for the search.
 | **`q4_gd_history.csv`** | **One row per iteration `k = 0 … 11570`, including the initial point: `k`, the objective `f_lambda(theta_k)`, and the gradient norm `norm(grad f_lambda(theta_k))`.** |
 | `q4_gd_history.npz` | The same two sequences, plus `theta0`, `theta_final`, `step_size`, `c`, `L`, `sigma_max`, `lambda` and `seed`. |
 | `q4_stopping_reason.txt` | **The stopping reason**, the iteration count, the elapsed time, the step size, and the initial and final values of the objective and the gradient norm. |
-| `q4_step_size_sweep.txt` | The step-size search: the ranking of the candidates from three starting points, and the iterations each needs to reach the stopping rule. Written by `step_size_sweep.py`. |
-| `q4_step_size_comparison.pdf` | Gradient-norm decay for each candidate step size. Written by `step_size_sweep.py`. |
+| `q4_step_size_sweep.txt` | The step-size search: the ranking of the candidates from three starting points, and the iterations each needs to reach the stopping rule. Written by `step_size_experiment.py`. |
+| `q4_step_size_comparison.pdf` | Gradient-norm decay for each candidate step size. Written by `step_size_experiment.py`. |
 
 ### Question 5 — convergence plots
 
@@ -74,7 +74,7 @@ Questions 1, 6 and 8 are theoretical and produce no files.
 |---|---|
 | `main_andres.py` | Everything graded: data loading, both implementations of the objective and gradient, and Questions 2, 3, 4, 5 and 7. |
 | `plot_utils.py` | The two Question 5 figures. Imports nothing from `main_andres.py`, so either figure can be redrawn from a saved history. |
-| `step_size_sweep.py` | The one-off step-size search behind `CHOSEN_C`. |
+| `step_size_experiment.py` | The one-off step-size search behind `CHOSEN_C`. |
 | `main.py`, `utils.py` | Exploratory scratch work kept for reference. Not part of the graded pipeline and writes nothing to `results/`. |
 
 ## Conventions

@@ -297,8 +297,8 @@ def question3(X, s):
 # Q4: fixed-step gradient descent
 # ==================================================================
 # Q4: gradient descent with a fixed constant step size.
-# run_gd() is the shared GD loop, used both here and by step_size_sweep.py.
-# The step size (CHOSEN_C / L) was selected beforehand in step_size_sweep.py
+# run_gd() is the shared GD loop, used both here and by step_size_experiment.py.
+# The step size (CHOSEN_C / L) was selected beforehand in step_size_experiment.py
 
 CHOSEN_C = 1.9           # fastest within alpha < 2/L --> see q4_step_size_sweep.txt
  
