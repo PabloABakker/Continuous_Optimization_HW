@@ -1,6 +1,6 @@
 Stopping reason: gradient_tolerance
 Iterations: 11570
-Elapsed time: 21.39 s   (limit 180 s)
+Elapsed time: 22.35 s   (limit 180 s)
 Step size: alpha = 1.9/L = 2.392085349062e-06
 L = 7.942860403140e+05   sigma_max(X) = 8.912272635608e+02   lambda = 0.005   seed = 42
 (step size chosen from step_size_experiment.py; see q4_step_size_experiment.txt)

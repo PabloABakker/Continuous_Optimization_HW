@@ -30,14 +30,14 @@ does not pay for the search.
 
 | File | Contents |
 |---|---|
-| `q2_summary.json` | Relative difference between the loop and vectorised implementations of `f_lambda` and its gradient, at three scales of `theta`; branch counts of `phi` at each scale; runtimes and speed-ups. |
+| `q2_summary.json` | Relative difference between the loop and vectorised implementations of `f_lambda` and its gradient, at three scales of `theta`; runtimes and speed-ups. |
 
 ### Question 3 — gradient check
 
 | File | Contents |
 |---|---|
 | `q3_gradient_check.csv` | `t` and the Taylor remainder `abs(f(theta+t*v) - f(theta) - t*<v, grad f(theta)>)`, 101 values of `t` logarithmically spaced in `[1e-8, 1]`. |
-| `q3_slope.txt` | The log–log slope, the fitted window, the round-off floor, and the branch counts of `phi` at the `theta` used. |
+| `q3_slope.txt` | The log–log slope, the fitted window and the round-off floor. |
 | `q3_gradient_check.pdf` | The remainder against `t` in log–log coordinates, with an `O(t^2)` reference, the round-off floor and the fitted window. |
 
 ### Question 4 — fixed-step gradient descent

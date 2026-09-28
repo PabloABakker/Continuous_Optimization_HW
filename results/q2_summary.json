@@ -2,25 +2,16 @@
   "per_scale": [
     {
       "scale": 0.01,
-      "branch_left": 0,
-      "branch_middle": 10645,
-      "branch_right": 2020,
       "rel_objective_error": 2.1799547962294703e-15,
       "rel_gradient_error": 8.519915742319411e-15
     },
     {
       "scale": 0.1,
-      "branch_left": 1792,
-      "branch_middle": 4084,
-      "branch_right": 6789,
       "rel_objective_error": 4.935577425355238e-15,
       "rel_gradient_error": 3.537487871216433e-14
     },
     {
       "scale": 1.0,
-      "branch_left": 7521,
-      "branch_middle": 223,
-      "branch_right": 4921,
       "rel_objective_error": 0.0,
       "rel_gradient_error": 2.787599716991036e-14
     }
@@ -30,14 +21,14 @@
   "timing_note": "median and min over repeated calls, after 2 warm-up calls",
   "reps_loop": 5,
   "reps_vectorized": 100,
-  "time_f_loop_median": 0.00752433342859149,
-  "time_f_vec_median": 0.0008036040235310793,
-  "time_grad_loop_median": 0.017594583798199892,
-  "time_grad_vec_median": 0.0017980835400521755,
-  "time_f_loop_min": 0.006947999820113182,
-  "time_f_vec_min": 0.00076683284714818,
-  "time_grad_loop_min": 0.017443208023905754,
-  "time_grad_vec_min": 0.0017184172756969929,
-  "speedup_f": 9.363235136042704,
-  "speedup_grad": 9.78518706516236
+  "time_f_loop_median": 0.0072801667265594006,
+  "time_f_vec_median": 0.0007901459466665983,
+  "time_grad_loop_median": 0.01716387504711747,
+  "time_grad_vec_median": 0.0018685625400394201,
+  "time_f_loop_min": 0.007067209109663963,
+  "time_f_vec_min": 0.0007642917335033417,
+  "time_grad_loop_min": 0.017109292093664408,
+  "time_grad_vec_min": 0.001717500388622284,
+  "speedup_f": 9.213698756884547,
+  "speedup_grad": 9.185603735133947
 }

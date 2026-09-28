@@ -124,16 +124,6 @@ def f_and_grad(theta, X, s, lam):
     return f, g
 
 
-def branch_counts(z):
-    """How many z_i fall in each of the three branches of phi."""
-    z = np.asarray(z)
-    return (
-        int(np.sum(z <= -1.0)),
-        int(np.sum((z > -1.0) & (z < 0.0))),
-        int(np.sum(z >= 0.0)),
-    )
-
-
 # ---- timing --------------------------------------------------------
 def time_it(func, args, reps, warmup=2):
     """Median and minimum wall-clock time over `reps` calls, after warm-up."""
@@ -155,7 +145,6 @@ def question2(X, s):
     per_scale = []
     for scale in Q2_SCALES:
         theta = scale * rng.standard_normal(X.shape[0])
-        left, middle, right = branch_counts(s * (X.T @ theta))
 
         fl, fv = f_loop(theta, X, s, LAM), f_vec(theta, X, s, LAM)
         gl, gv = grad_loop(theta, X, s, LAM), grad_vec(theta, X, s, LAM)
@@ -164,14 +153,10 @@ def question2(X, s):
 
         per_scale.append(dict(
             scale=float(scale),
-            branch_left=left,
-            branch_middle=middle,
-            branch_right=right,
             rel_objective_error=float(rel_f),
             rel_gradient_error=float(rel_g),
         ))
-        print(f"  scale = {scale:>5g}: branches (z<=-1 / -1<z<0 / z>=0) = "
-              f"{left} / {middle} / {right},  "
+        print(f"  scale = {scale:>5g}: "
               f"rel. error  f = {rel_f:.2e},  grad = {rel_g:.2e}")
 
     max_f = max(p["rel_objective_error"] for p in per_scale)
@@ -235,9 +220,6 @@ def question3(X, s):
     a = s * (X.T @ theta)
     b = s * (X.T @ v)
 
-    left, middle, right = branch_counts(a)
-    print(f"  branches (z<=-1 / -1<z<0 / z>=0) = {left} / {middle} / {right}")
-
     f0, g0 = f_and_grad(theta, X, s, LAM)
     directional = float(v @ g0)
 
@@ -285,8 +267,6 @@ def question3(X, s):
 
     with open(RESULTS_DIR / "q3_slope.txt", "w") as fh:
         fh.write(f"theta scale: {THETA_SCALE}\n")
-        fh.write(f"branch counts (z<=-1 / -1<z<0 / z>=0): "
-                 f"{left} / {middle} / {right}\n")
         fh.write(f"f_lambda(theta): {f0:.12e}\n")
         fh.write(f"round-off floor (={FLOOR_FACTOR}*eps*f0): {floor:.6e}\n")
         fh.write(f"fit window: t in [{t[mask][0]:.6e}, {t[mask][-1]:.6e}]\n")
