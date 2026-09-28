@@ -31,7 +31,6 @@ does not pay for the search.
 | File | Contents |
 |---|---|
 | `q2_summary.json` | Relative difference between the loop and vectorised implementations of `f_lambda` and its gradient, at three scales of `theta`; branch counts of `phi` at each scale; runtimes and speed-ups. |
-| `q2_runtime_comparison.pdf` | Median runtime, loop vs vectorised, for both the objective and the gradient. |
 
 ### Question 3 — gradient check
 

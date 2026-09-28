@@ -211,22 +211,6 @@ def question2(X, s):
             speedup_grad=t_gl / t_gv,
         ), fh, indent=2)
 
-    # ---- runtime figure ------------------------------------------------
-    fig, ax = plt.subplots(figsize=(7, 4))
-    labels = ["Objective\nloop", "Objective\nvectorized",
-              "Gradient\nloop", "Gradient\nvectorized"]
-    times = [t_fl, t_fv, t_gl, t_gv]
-    bars = ax.bar(labels, times)
-    ax.set_yscale("log")
-    ax.set(ylabel="Median runtime (s)", title="Runtime comparison")
-    ax.grid(axis="y", ls=":", alpha=0.5)
-    for b, tv in zip(bars, times):
-        ax.text(b.get_x() + b.get_width() / 2, tv, f"{tv:.2e}",
-                ha="center", va="bottom")
-    fig.tight_layout()
-    fig.savefig(RESULTS_DIR / "q2_runtime_comparison.pdf")
-    plt.close(fig)
-
 
 # ==================================================================
 # Q3: gradient check
@@ -395,7 +379,7 @@ def question4(X, s, L):
 
 
     # saves in results
-    save_q4_results(RESULTS_DIR, k, objectives, grad_norms, theta0, theta,
+    save_q4_results(RESULTS_DIR, k, objectives, grad_norms, theta0,
                     reason, elapsed, step=step, c=CHOSEN_C,
                     sigma_max=sigma_max, L=L, lam=LAM, seed=SEED,
                     tol=TOL, max_time=MAX_TIME)

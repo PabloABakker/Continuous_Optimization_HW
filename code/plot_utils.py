@@ -25,7 +25,7 @@ THEORY_COLOR = "#eb6834"
 RULE_COLOR = "#52514e"
 
 
-def save_q4_results(results_dir, k, objectives, grad_norms, theta0, theta_final,
+def save_q4_results(results_dir, k, objectives, grad_norms, theta0,
                     reason, elapsed, *, step, c, sigma_max, L, lam, seed,
                     tol, max_time):
     """Write the three files Question 4 asks for.
@@ -39,9 +39,11 @@ def save_q4_results(results_dir, k, objectives, grad_norms, theta0, theta_final,
 
     The configuration is keyword-only, so the call site names each constant.
     """
+    # theta_final is not repeated here: it is saved for Q7 as
+    # q7_theta_final.npy and q7_theta_final.csv.
     np.savez(results_dir / "q4_gd_history.npz",
              iterations=np.arange(k + 1), objectives=objectives,
-             gradient_norms=grad_norms, theta0=theta0, theta_final=theta_final,
+             gradient_norms=grad_norms, theta0=theta0,
              step_size=step, c=c, sigma_max=sigma_max, L=L, lam=lam, seed=seed)
 
     np.savetxt(results_dir / "q4_gd_history.csv",
