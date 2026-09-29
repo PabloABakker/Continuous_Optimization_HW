@@ -27,7 +27,8 @@ RULE_COLOR = "#52514e"
 
 
 def plot_gradient_check(t, err, mask, floor, results_dir):
-    """Q3 deliverable: the Taylor remainder against t, in log-log coordinates.
+    """
+    Q3 deliverable: the Taylor remainder against t, in log-log coordinates.
 
     `mask` is the window the slope was fitted on, shaded here so the figure
     shows which points the number came from.  The O(t^2) reference is scaled
@@ -97,7 +98,8 @@ def save_q4_results(results_dir, k, objectives, grad_norms, theta0,
 
 
 def plot_convergence(objectives, grad_norms, bound, c, results_dir):
-    """Q5 deliverable: f_lambda(theta_k) and ||grad f_lambda(theta_k)|| vs k.
+    """
+    Q5 deliverable: f_lambda(theta_k) and ||grad f_lambda(theta_k)|| vs k.
 
     `bound` is Corollary 4.32 evaluated at the same k, and is drawn on the
     gradient panel.  Over the run's own range it is visually flat, which is
@@ -131,7 +133,8 @@ def plot_convergence(objectives, grad_norms, bound, c, results_dir):
 
 
 def plot_theory_horizon(grad_norms, prefactor, rho, c, tol, results_dir):
-    """Second figure: the same guarantee carried out to where it lands.
+    """
+    Second figure: the same guarantee carried out to where it lands.
 
     We run a second graph with log x-axis too to be able to clearly see the
     comparison between theoretical and experimental results up to the end.

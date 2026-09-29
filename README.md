@@ -4,8 +4,8 @@ Andrés Alarcón Navarro · Pablo Agustin Bakker · Gabriel Alberto Klingler Mor
 
 ## Required packages
 
-`numpy`, `scipy` and `matplotlib`. Nothing else beyond the standard library.
-
+Numpy, scipy and matplotlib
+can
 Versions used: Python 3.13.12, numpy 2.4.4, scipy 1.17.1, matplotlib 3.10.9.
 Matplotlib runs on the `Agg` backend, so no display is needed.
 

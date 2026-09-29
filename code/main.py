@@ -411,13 +411,15 @@ def question5(objectives, grad_norms, L):
 # ==================================================================
 def error_rate(theta, X, y):
     pred = (X.T @ theta > 0).astype(float)      # 1 if x^T*theta >0 else 0
-    return float(np.mean(pred != y))
+    return float(np.mean(pred != y))            # computes the mean for error
 
 
 def question7(theta, X_tr, y_tr, X_te, y_te):
     print("\n=== Q7: classification error ===")
+    # compute the error for train and test data
     e_tr, e_te = error_rate(theta, X_tr, y_tr), error_rate(theta, X_te, y_te)
-    
+
+    # save results
     np.savetxt(RESULTS_DIR / "q7_theta_final.csv", theta, delimiter=",")
     with open(RESULTS_DIR / "q7_errors.json", "w") as fh:
         json.dump({"train_error": e_tr, "test_error": e_te}, fh, indent=2)
@@ -429,7 +431,6 @@ def question7(theta, X_tr, y_tr, X_te, y_te):
 def main():
     X_tr, y_tr, X_te, y_te = load_data()
     s_tr = signs(y_tr)
-
     L = float(np.linalg.eigvalsh(X_tr @ X_tr.T)[-1]) + LAM
 
     question2(X_tr, s_tr)

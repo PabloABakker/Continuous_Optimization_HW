@@ -40,14 +40,14 @@ SWEEP_C = [0.5, 1.0, 1.5, 1.9]
 # regular grid every 25 up to 200 to see where the solution starts to degrade
 PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0] + [float(c) for c in range(25, 201, 25)]
 
-SHORT_SEEDS = [42, 0, 7] 
-SHORT_ITERS = 500         
-CHECKPOINTS = [10, 50, 100, 200, 500]
+SHORT_SEEDS = [42, 0, 7]
+# the horizon must be shorter than the fastest candidate's run to the tolerance
+# (c = 200 takes 195 iterations), otherwise the largest steps are ranked on
+# post-convergence drift and the ordering stops being about speed
+SHORT_ITERS = 100
+CHECKPOINTS = [10, 25, 50, 100]
 
 LONG_MAX_ITER = 60000
-# generous: the slowest candidate (c = 0.5) needs ~44000 iterations, about 85 s
-# on an idle machine. The iteration cap is the real backstop; this one is only
-# here so a diverging run cannot hang, and must not trip on a loaded laptop.
 LONG_MAX_TIME = 300.0
 
 COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]
@@ -88,7 +88,6 @@ def long_runs(X, s, L, all_c):
         results[c] = dict(objectives=obj, grad_norms=gn, reason=reason,
                           seconds=secs, iters=iters)
         shown = f"{iters:>6d}" if iters is not None else "  none"
-        # non-monotonicity would be the signature of a step that overshoots
         ratio = gn / gn[0]
         bumps = int(np.sum(np.diff(ratio) > 0))
         print(f"   c = {c:4.2f}: iters to tol = {shown}   "
@@ -100,8 +99,7 @@ def long_runs(X, s, L, all_c):
 # ------------ Results ------------
 def make_plot(results, all_c):
     fig, ax = plt.subplots(figsize=(8, 5))
-    # Curves terminate at the same height (the tolerance) but at different k,
-    # so the direct labels are staggered vertically to keep them apart.
+
     for j, (c, color) in enumerate(zip(all_c, COLORS)):
         gn = results[c]["grad_norms"]
         ratio = gn / gn[0]
@@ -113,8 +111,7 @@ def make_plot(results, all_c):
                     xytext=(3, 8 + 9 * (j % 2)), textcoords="offset points",
                     color=color, fontsize=9, fontweight="bold", clip_on=False)
     ax.axhline(TOL, color="#52514e", ls="--", lw=1, zorder=1)
-    # No run goes below the tolerance, so the band under the dashed line is
-    # free space: park the rule's label there instead of over the curve ends.
+    #
     ax.set_ylim(bottom=3.5e-4)
     ax.annotate(f"stopping rule:  $\\|g_k\\| \\leq {TOL:g}\\,\\|g_0\\|$",
                 xy=(0.0, TOL), xycoords=("axes fraction", "data"),
@@ -130,6 +127,7 @@ def make_plot(results, all_c):
     fig.savefig(RESULTS_DIR / "q4_step_size_comparison.pdf")
     plt.close(fig)
 
+
 def write_report(L, orderings, identical, results, all_c):
     """
     1: the ranking of the candidates does not depend on the starting point.
@@ -138,25 +136,19 @@ def write_report(L, orderings, identical, results, all_c):
     recorded here is the ranking they produce.
     """
     with open(RESULTS_DIR / "q4_step_size_experiment.txt", "w") as fh:
-        fh.write("Step-size selection for Question 4 "
-                 "(produced by step_size_experiment.py, not by main.py)\n\n")
+        fh.write("Step-size selection for Question 4\n\n")
         fh.write(f"lambda = {LAM}\nL = {L:.12e}\n2/L = {2.0 / L:.12e}\n")
         fh.write(f"stopping rule: ||g_k|| <= {TOL:g} * ||g_0||\n")
         fh.write(f"candidates: {SWEEP_C} within 2/L, {PROBE_C} beyond it\n\n")
 
-        fh.write("1. DOES THE RANKING DEPEND ON THE STARTING POINT?\n")
-        fh.write(f"   {SHORT_ITERS} iterations from each of the seeds "
-                 f"{SHORT_SEEDS}, ranked by ||g_k||/||g_0|| (best first)\n\n")
+        fh.write(f"Experiment 1 ({SHORT_ITERS} iterations, seeds {SHORT_SEEDS})\n")
+        fh.write("Ranked by ||g_k||/||g_0||\n\n")
         for seed, order in zip(SHORT_SEEDS, orderings):
             fh.write(f"     seed {seed:>2}:  "
                      + "  <  ".join(f"{c:g}" for c in order) + "\n")
-        fh.write(f"\n   identical across all {len(SHORT_SEEDS)} seeds: {identical}\n")
-        fh.write("   => the starting point moves the numbers but not the order,\n"
-                 "      so one seed is enough for the selection below.\n\n")
+        fh.write(f"\n   ranking identical across all seeds: {identical}\n\n\n")
 
-        fh.write(f"2. ITERATIONS TO THE STOPPING RULE (seed {SEED})\n\n")
-        fh.write("   f_final shows whether a larger step still reaches the same\n"
-                 "   minimiser, or merely trips the stopping rule somewhere worse.\n\n")
+        fh.write(f"Experiment 2 (seed {SEED})\n\n")
         fh.write("        c   iterations   c * iterations      f_final\n")
         products = []
         for c in all_c:
@@ -169,43 +161,7 @@ def write_report(L, orderings, identical, results, all_c):
                      f"{results[c]['objectives'][-1]:10.4e}\n")
         reached = [c for c in all_c if results[c]["iters"] is not None]
 
-        # Both quantities drift smoothly rather than breaking at a threshold,
-        # so report where each stays within 1% and how far they have moved at
-        # the largest candidate, instead of classifying candidates as good or
-        # bad on a cut-off that would be arbitrary.
-        if reached:
-            f_ref = min(results[c]["objectives"][-1] for c in reached)
-            p_ref = min(c * results[c]["iters"] for c in reached)
-
-            def last_within(key, ref, frac=0.01):
-                """Largest c for which `key` is still within frac of its best."""
-                ok = min(reached)
-                for c in reached:
-                    if key(c) <= (1.0 + frac) * ref:
-                        ok = c
-                    else:
-                        break
-                return ok
-
-            c_prod = last_within(lambda c: c * results[c]["iters"], p_ref)
-            c_obj = last_within(lambda c: results[c]["objectives"][-1], f_ref)
-            c_max = max(reached)
-            p_max = c_max * results[c_max]["iters"]
-            f_max = results[c_max]["objectives"][-1]
-
-            fh.write(f"\n   Every candidate converged, so the interval (0, 2/L) is sufficient\n"
-                     f"   for convergence here and not necessary. Both the 1/c scaling and the\n"
-                     f"   quality of the solution then degrade smoothly, with no sharp break:\n\n")
-            fh.write(f"     c * iterations is within 1% of its best up to c = {c_prod:g},\n")
-            fh.write(f"     f_final       is within 1% of its best up to c = {c_obj:g}.\n")
-            fh.write(f"     At c = {c_max:g} the product is {100 * (p_max / p_ref - 1):.0f}% above its best "
-                     f"and f_final {100 * (f_max / f_ref - 1):.0f}% above its.\n\n")
-            fh.write(f"   The iteration count keeps falling throughout, so on its own it would\n"
-                     f"   favour the largest step. It falls because the run meets the stopping\n"
-                     f"   rule sooner, not because it converges better: a larger step clears the\n"
-                     f"   directions of high curvature at once and leaves the remaining error in\n"
-                     f"   flat ones, where the same gradient norm sits much further from the\n"
-                     f"   minimiser. That is what f_final records.\n")
+        fh.write("\n   \n")
         if reached:
             best = min(reached, key=lambda c: results[c]["iters"])
             fh.write(f"\n   fastest overall: c = {best} "

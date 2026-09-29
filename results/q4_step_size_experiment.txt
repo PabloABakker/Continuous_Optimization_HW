@@ -1,4 +1,4 @@
-Step-size selection for Question 4 (produced by step_size_experiment.py, not by main.py)
+Step-size selection for Question 4
 
 lambda = 0.005
 L = 7.942860403140e+05
@@ -6,21 +6,17 @@ L = 7.942860403140e+05
 stopping rule: ||g_k|| <= 0.001 * ||g_0||
 candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0, 7.0, 10.0, 15.0, 25.0, 50.0, 75.0, 100.0, 125.0, 150.0, 175.0, 200.0] beyond it
 
-1. DOES THE RANKING DEPEND ON THE STARTING POINT?
-   500 iterations from each of the seeds [42, 0, 7], ranked by ||g_k||/||g_0|| (best first)
+Experiment 1 (100 iterations, seeds [42, 0, 7])
+Ranked by ||g_k||/||g_0||
 
-     seed 42:  175  <  200  <  150  <  125  <  100  <  75  <  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed 42:  200  <  175  <  150  <  125  <  100  <  75  <  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
      seed  0:  200  <  175  <  150  <  125  <  100  <  75  <  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
      seed  7:  200  <  175  <  150  <  125  <  100  <  75  <  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
 
-   identical across all 3 seeds: False
-   => the starting point moves the numbers but not the order,
-      so one seed is enough for the selection below.
+   ranking identical across all seeds: True
 
-2. ITERATIONS TO THE STOPPING RULE (seed 42)
 
-   f_final shows whether a larger step still reaches the same
-   minimiser, or merely trips the stopping rule somewhere worse.
+Experiment 2 (seed 42)
 
         c   iterations   c * iterations      f_final
       0.5        43947            21974   1.0191e+02
@@ -41,20 +37,7 @@ candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0, 7.0, 10.0, 15.0, 25.0, 5
      175.0          204            35700   1.0976e+02
      200.0          195            39000   1.2553e+02
 
-   Every candidate converged, so the interval (0, 2/L) is sufficient
-   for convergence here and not necessary. Both the 1/c scaling and the
-   quality of the solution then degrade smoothly, with no sharp break:
-
-     c * iterations is within 1% of its best up to c = 15,
-     f_final       is within 1% of its best up to c = 75.
-     At c = 200 the product is 77% above its best and f_final 24% above its.
-
-   The iteration count keeps falling throughout, so on its own it would
-   favour the largest step. It falls because the run meets the stopping
-   rule sooner, not because it converges better: a larger step clears the
-   directions of high curvature at once and leaves the remaining error in
-   flat ones, where the same gradient norm sits much further from the
-   minimiser. That is what f_final records.
+   
 
    fastest overall: c = 200.0 (195 iterations)
    fastest within the 2/L guarantee: c = 1.9 (11570 iterations)  <- CHOSEN_C
