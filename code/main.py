@@ -54,7 +54,7 @@ def load_data():
     y_test = np.asarray(test.y, dtype=np.float64).ravel()
 
     # The last row already contains the ones (bias): do not append another.
-    assert np.allclose(X_train[-1, :], 1.0) and np.allclose(X_test[-1, :], 1.0)              # safer than exact float comparison 
+    assert np.allclose(X_train[-1, :], 1.0) and np.allclose(X_test[-1, :], 1.0)              # safer than exact float comparison
     assert X_train.shape[1] == y_train.size and X_test.shape[1] == y_test.size
     return X_train, y_train, X_test, y_test
 
@@ -281,8 +281,8 @@ def question3(X, s):
 # The step size (CHOSEN_C / L) was selected beforehand in step_size_experiment.py
 
 CHOSEN_C = 1.9           # fastest within alpha < 2/L --> see q4_step_size_experiment.txt
- 
- 
+
+
 def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
     """ 
     Gradient descent run with the constant step size alpha = c / L.
@@ -300,12 +300,12 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
     g0_norm = float(np.linalg.norm(g))
     objectives = [f]
     grad_norms = [g0_norm]
- 
-    start = time.perf_counter()     
+
+    start = time.perf_counter()
     reason = None
     k = 0
     # iterations
-    while True:     
+    while True:
         # check stopping reason
         if tol is not None and grad_norms[-1] <= tol * g0_norm:
             reason = "gradient_tolerance"
@@ -320,7 +320,7 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
         # compute results
         theta = theta - step * g
         k += 1
-        f, g = f_and_grad(theta, X, s, LAM)      
+        f, g = f_and_grad(theta, X, s, LAM)
         gn = float(np.linalg.norm(g))
 
         # safeguard for inf and NaN
@@ -332,11 +332,11 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
         # save computations
         objectives.append(f)
         grad_norms.append(gn)
- 
+
     elapsed = time.perf_counter() - start                         # total time
     return theta, np.array(objectives), np.array(grad_norms), reason, elapsed
- 
- 
+
+
 def question4(X, s, L):
     """
     Q4: gradient descent with a fixed constant step alpha = CHOSEN_C / L.
@@ -354,7 +354,7 @@ def question4(X, s, L):
     # run gradient descent
     theta, objectives, grad_norms, reason, elapsed = run_gd(
         X, s, L, CHOSEN_C, theta0, tol=TOL, max_time=MAX_TIME)
- 
+
     k = objectives.size - 1   # vectorisation at 0
 
 
@@ -367,14 +367,11 @@ def question4(X, s, L):
     return theta, objectives, grad_norms
 
 
-
-
-
 # ==================================================================
 # Q5: convergence plots
 # ==================================================================
-# We plot the objective function and its gradient against iterations for both 
-# our experimental and the theoretical results generalised from the notes - 
+# We plot the objective function and its gradient against iterations for both
+# our experimental and the theoretical results generalised from the notes -
 # Corollary 4.32 (see question 6)
 # The method is directly run on question 4 and we use results from theta_final,
 # objectives, grad_norms
@@ -424,19 +421,6 @@ def question7(theta, X_tr, y_tr, X_te, y_te):
 # ==================================================================
 
 
-
-
-
- 
-
-
-
-
-
-
-
-
-
 def main():
     X_tr, y_tr, X_te, y_te = load_data()
     s_tr = signs(y_tr)
@@ -454,19 +438,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
