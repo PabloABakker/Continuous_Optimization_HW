@@ -85,7 +85,7 @@ Questions 1, 6 and 8 are theoretical and produce no files.
 | `main.py` | Everything graded: data loading, both implementations of the objective and gradient, and Questions 2, 3, 4, 5 and 7. |
 | `plot_utils.py` | The two Question 5 figures. Imports nothing from `main.py`, so either figure can be redrawn from a saved history. |
 | `step_size_experiment.py` | The one-off step-size search behind `CHOSEN_C`. |
-| `main_.py`, `utils.py` | Earlier drafts kept for reference. Not part of the graded pipeline; `main.py` is the entry point. |
+| `main_.py` | An earlier draft kept for reference. Not part of the graded pipeline; `main.py` is the entry point. |
 
 ## Conventions
 
