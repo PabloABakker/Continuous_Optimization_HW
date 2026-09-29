@@ -1,3 +1,13 @@
-Stopping reason: time_limit
-Iterations: 15209
-Elapsed time: 180.000169 s
+Stopping reason: gradient_tolerance
+Iterations: 11570
+Elapsed time: 22.35 s   (limit 180 s)
+Step size: alpha = 1.9/L = 2.392085349062e-06
+L = 7.942860403140e+05   sigma_max(X) = 8.912272635608e+02   lambda = 0.005   seed = 42
+(step size chosen from step_size_experiment.py; see q4_step_size_experiment.txt)
+
+stopping rule: ||g_k|| <= 0.001 * ||g_0||
+
+Objective       f(theta_0)     = 9.422377e+04
+                f(theta_final) = 1.019242e+02     (ratio 9.244e+02)
+Gradient norm   ||g_0||        = 6.190671e+04
+                ||g_final||    = 6.190618e+01     (ratio 1.000e-03)

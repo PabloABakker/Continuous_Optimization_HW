@@ -1,0 +1,34 @@
+Step-size selection for Question 4 (produced by step_size_experiment.py, not by main_andres.py)
+
+lambda = 0.005
+L = 7.942860403140e+05
+2/L = 2.517984577960e-06
+stopping rule: ||g_k|| <= 0.001 * ||g_0||
+candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0] beyond it
+
+1. DOES THE RANKING DEPEND ON THE STARTING POINT?
+   500 iterations from each of the seeds [42, 0, 7], ranked by ||g_k||/||g_0|| (best first)
+
+     seed 42:  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed  0:  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed  7:  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+
+   identical across all 3 seeds: True
+   => the starting point moves the numbers but not the order,
+      so one seed is enough for the selection below.
+
+2. ITERATIONS TO THE STOPPING RULE (seed 42)
+
+        c   iterations   c * iterations
+      0.5        43947            21974
+      1.0        21977            21977
+      1.5        14654            21981
+      1.9        11570            21983
+      2.5         8795            21988
+      4.0         5500            22000
+
+   c * iterations is constant to within 0.1%, i.e. iterations ~ 1/c.
+   the candidates beyond 2/L ([2.5, 4.0]) converged as well.
+
+   fastest overall: c = 4.0 (5500 iterations)
+   fastest within the 2/L guarantee: c = 1.9 (11570 iterations)  <- CHOSEN_C
