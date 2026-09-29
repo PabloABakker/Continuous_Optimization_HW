@@ -147,6 +147,14 @@ def time_it(func, args, reps, warmup=2):
 
 def question2(X, s):
     """
+    Computes the relative error between the loop and vectorized implementations
+    of both the objective function and its gradient, for 3 random theta following
+    a normal distribution with different scales.
+    
+    Output : 
+    - For a fixed scale, gives the median runtime of both implementations and the
+      corresponding speedup factor.
+    - Json file with results
     """
     print("\n=== Q2: objective and gradient ===")
   
@@ -207,18 +215,23 @@ def question2(X, s):
 # ==================================================================
 # Q3: gradient check
 # ==================================================================
-# The fitting window is chosen from properties of the curve that do NOT
-# involve its slope: the remainder must be above the round-off floor
-# (differences of numbers of size f0 lose digits below ~eps*f0) and below
-# the large-t region where the second-order model stops being accurate.
-# Choosing the window by "slope close to 2" would make the test unable to
-# fail, since a wrong gradient (slope 1) would simply never be reported.
-
+# The expected slope of the log-log plot should be close to 2, since the
+# Taylor remainder is O(t²). However, a fitting window is chosen such that
+# the remainder is well above the round-off floor (differences of numbers of
+# size f(theta) lose digits below approximately eps*f(theta), where eps is
+# the machine epsilon) and below the large-t region where the second-order
+# approximation stops being accurate.
 
 def question3(X, s):
     """
-    
-    
+    Computes and plots the absolute difference between the finite-difference 
+    approximation f(theta + t v) - f(theta) and the directional derivative of 
+    f at a random theta (for a fixed scale) along a random unit vector v, as a 
+    function of t in logarithmic scale.
+
+    Outputs:  
+    - the slope of the log-log plot at the chosen fitting window
+    - txt file with important results
     """
     print("\n=== Q3: gradient check ===")
     # choice of theta and unit vector v
@@ -276,7 +289,7 @@ def question3(X, s):
 # run_gd() is the shared GD loop, used both here and by step_size_experiment.py.
 # The step size (CHOSEN_C / L) was selected beforehand in step_size_experiment.py
 
-CHOSEN_C = 1.9           # fastest within alpha < 2/L --> see q4_step_size_experiment.txt
+CHOSEN_C = 1.9           # fastest within alpha < 2/L --> see results/q4_stepsize_selection(disregard)/
 
 
 def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
@@ -403,13 +416,15 @@ def question5(objectives, grad_norms, L):
 # ==================================================================
 def error_rate(theta, X, y):
     pred = (X.T @ theta > 0).astype(float)      # 1 if x^T*theta >0 else 0
-    return float(np.mean(pred != y))
+    return float(np.mean(pred != y))            # computes the mean for error
 
 
 def question7(theta, X_tr, y_tr, X_te, y_te):
     print("\n=== Q7: classification error ===")
+    # compute the error for train and test data
     e_tr, e_te = error_rate(theta, X_tr, y_tr), error_rate(theta, X_te, y_te)
-    
+
+    # save results
     np.savetxt(RESULTS_DIR / "q7_theta_final.csv", theta, delimiter=",")
     with open(RESULTS_DIR / "q7_errors.json", "w") as fh:
         json.dump({"train_error": e_tr, "test_error": e_te}, fh, indent=2)
@@ -421,7 +436,6 @@ def question7(theta, X_tr, y_tr, X_te, y_te):
 def main():
     X_tr, y_tr, X_te, y_te = load_data()
     s_tr = signs(y_tr)
-
     L = float(np.linalg.eigvalsh(X_tr @ X_tr.T)[-1]) + LAM
 
     question2(X_tr, s_tr)

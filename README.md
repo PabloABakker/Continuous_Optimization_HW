@@ -4,8 +4,8 @@ Andrés Alarcón Navarro · Pablo Agustin Bakker · Gabriel Alberto Klingler Mor
 
 ## Required packages
 
-`numpy`, `scipy` and `matplotlib`. Nothing else beyond the standard library.
-
+Numpy, scipy and matplotlib
+can
 Versions used: Python 3.13.12, numpy 2.4.4, scipy 1.17.1, matplotlib 3.10.9.
 Matplotlib runs on the `Agg` backend, so no display is needed.
 
@@ -17,24 +17,23 @@ From the `code/` folder:
 python main.py
 ```
 
-It reads `../data/mnist_train_test.mat`, writes every file in `../results/`
-listed below, needs no user input, and runs to completion on its own.
+Reads from ../data/mnist_train_test.mat` and writes in "../results/"
 
-**Execution time: 23 seconds** (MacBook, Apple silicon), almost all of it the
-Question 4 gradient descent: 11570 iterations at about 2 ms each.
+**Execution time: approximately 20 seconds**
 
-### The step-size search is not part of that run
+### Note : the step-size search is not part of that run
 
 ```bash
-python step_size_experiment.py          # ~4 minutes, do not run to grade
+python step_size_experiment.py          # approximately 4 min 
 ```
 
-This one-off script produced `CHOSEN_C = 1.9` and the two `q4_step_size_*`
-files already in `results/`. It is deliberately **not** called by `main.py`:
-the step size is hard-coded there, so the graded run is deterministic and does
-not pay the four minutes.
+This one-off script produced `CHOSEN_C = 1.9` and the two files already in
+`results/q4_stepsize_selection(disregard)/`. It is deliberately **not** called
+by `main.py`: the step size is hard-coded there, so the graded run is
+deterministic and does not pay the four minutes.
 
-## Where each answer is saved
+
+## Saved results 
 
 ### Question 2 — objective and gradient
 
@@ -58,8 +57,15 @@ not pay the four minutes.
 |---|---|
 | **`q4_gd_history.csv`** | **One row per iteration `k = 0 … 11570`, including the initial point: `k`, the objective `f_lambda(theta_k)`, and the gradient norm `norm(grad f_lambda(theta_k))`.** |
 | `q4_stopping_reason.txt` | **The stopping reason**, the iteration count, the elapsed time, the step size, and the initial and final values of the objective and the gradient norm. |
-| `q4_step_size_experiment.txt` | The step-size search: the ranking of the candidates from three starting points, and the iterations each needs to reach the stopping rule. Written by `step_size_experiment.py`. |
-| `q4_step_size_comparison.pdf` | Gradient-norm decay for each candidate step size. Written by `step_size_experiment.py`. |
+The two files behind the choice of step size sit in
+`results/q4_stepsize_selection(disregard)/`, in a folder of their own because
+`python main.py` does **not** regenerate them — they come from the one-off
+`step_size_experiment.py`:
+
+| File | Contents |
+|---|---|
+| `q4_step_size_experiment.txt` | The step-size search: the ranking of the candidates from three starting points, and the iterations each needs to reach the stopping rule. |
+| `q4_step_size_comparison.pdf` | Gradient-norm decay for each candidate step size. |
 
 ### Question 5 — convergence plots
 
@@ -75,7 +81,7 @@ not pay the four minutes.
 | `q7_errors.json` | Training and test classification error rates for `theta_final`. |
 | `q7_theta_final.csv` | The final iterate `theta_final` (785 entries: 784 pixel weights and the bias). |
 
-Questions 1, 6 and 8 are theoretical and produce no files.
+
 
 ## Code
 
@@ -84,10 +90,6 @@ Questions 1, 6 and 8 are theoretical and produce no files.
 | `main.py` | Everything graded: data loading, both implementations of the objective and gradient, and Questions 2, 3, 4, 5 and 7. |
 | `plot_utils.py` | Every figure and the Question 4 file output. Imports nothing from `main.py`, so a figure can be redrawn from a saved history. |
 | `step_size_experiment.py` | The one-off step-size search behind `CHOSEN_C`. |
-| `main_.py` | An earlier draft kept for reference. Not part of the graded pipeline; `main.py` is the entry point. |
 
-## Conventions
 
-- `s_i = 1 - 2*y_i`, so `y = 0` gives `s = +1` and `y = 1` gives `s = -1`.
-- The last row of `X` is already the row of ones, so no bias row is appended.
-- `lambda = 0.005`, and the seed for `theta_0` in Question 4 is `42`.
+

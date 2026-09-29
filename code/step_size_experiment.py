@@ -2,8 +2,10 @@
 Step-size selection for Question 4. Ran before submission to get CHOSEN_C. 
 Not run by teachers, or imported/called by main.py.
 
-Writes  ../results/q4_step_size_experiment.txt
-        ../results/q4_step_size_comparison.pdf 
+Writes into ../results/q4_stepsize_selection(disregard)/ , a folder kept apart because
+"python main.py" does not regenerate these two files:
+        q4_step_size_experiment.txt
+        q4_step_size_comparison.pdf
 
 
 Two experiments :
@@ -33,18 +35,27 @@ import matplotlib.pyplot as plt
 
 from main import load_data, signs, run_gd, LAM, TOL, SEED, RESULTS_DIR
 
+# these outputs are not reproduced by "python main.py", so they sit in a
+# folder of their own rather than among the files that are
+OUT_DIR = RESULTS_DIR / "q4_stepsize_selection(disregard)"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # Candidates within theoretical range
 SWEEP_C = [0.5, 1.0, 1.5, 1.9]
-# Probes beyond the guarantee to test how conservative the bound is
-PROBE_C = [2.5, 4.0]
+# Probes beyond the guarantee to test how conservative the bound is, then a
+# regular grid every 25 up to 200 to see where the solution starts to degrade
+PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0] + [float(c) for c in range(25, 201, 25)]
 
-SHORT_SEEDS = [42, 0, 7] 
-SHORT_ITERS = 500         
-CHECKPOINTS = [10, 50, 100, 200, 500]
+SHORT_SEEDS = [42, 0, 7]
+# the horizon must be shorter than the fastest candidate's run to the tolerance
+# (c = 200 takes 195 iterations), otherwise the largest steps are ranked on
+# post-convergence drift and the ordering stops being about speed
+SHORT_ITERS = 100
+CHECKPOINTS = [10, 25, 50, 100]
 
 LONG_MAX_ITER = 60000
-LONG_MAX_TIME = 120.0
+LONG_MAX_TIME = 300.0
 
 COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]
 
@@ -84,7 +95,6 @@ def long_runs(X, s, L, all_c):
         results[c] = dict(objectives=obj, grad_norms=gn, reason=reason,
                           seconds=secs, iters=iters)
         shown = f"{iters:>6d}" if iters is not None else "  none"
-        # non-monotonicity would be the signature of a step that overshoots
         ratio = gn / gn[0]
         bumps = int(np.sum(np.diff(ratio) > 0))
         print(f"   c = {c:4.2f}: iters to tol = {shown}   "
@@ -96,8 +106,7 @@ def long_runs(X, s, L, all_c):
 # ------------ Results ------------
 def make_plot(results, all_c):
     fig, ax = plt.subplots(figsize=(8, 5))
-    # Curves terminate at the same height (the tolerance) but at different k,
-    # so the direct labels are staggered vertically to keep them apart.
+
     for j, (c, color) in enumerate(zip(all_c, COLORS)):
         gn = results[c]["grad_norms"]
         ratio = gn / gn[0]
@@ -109,8 +118,7 @@ def make_plot(results, all_c):
                     xytext=(3, 8 + 9 * (j % 2)), textcoords="offset points",
                     color=color, fontsize=9, fontweight="bold", clip_on=False)
     ax.axhline(TOL, color="#52514e", ls="--", lw=1, zorder=1)
-    # No run goes below the tolerance, so the band under the dashed line is
-    # free space: park the rule's label there instead of over the curve ends.
+    #
     ax.set_ylim(bottom=3.5e-4)
     ax.annotate(f"stopping rule:  $\\|g_k\\| \\leq {TOL:g}\\,\\|g_0\\|$",
                 xy=(0.0, TOL), xycoords=("axes fraction", "data"),
@@ -123,8 +131,9 @@ def make_plot(results, all_c):
     ax.set_axisbelow(True)
     ax.legend(frameon=False, loc="upper right", title="step $\\alpha = c/L$")
     fig.tight_layout()
-    fig.savefig(RESULTS_DIR / "q4_step_size_comparison.pdf")
+    fig.savefig(OUT_DIR / "q4_step_size_comparison.pdf")
     plt.close(fig)
+
 
 def write_report(L, orderings, identical, results, all_c):
     """
@@ -133,25 +142,21 @@ def write_report(L, orderings, identical, results, all_c):
     The per-checkpoint tables behind experiment 1 stay on the console; what is
     recorded here is the ranking they produce.
     """
-    with open(RESULTS_DIR / "q4_step_size_experiment.txt", "w") as fh:
-        fh.write("Step-size selection for Question 4 "
-                 "(produced by step_size_experiment.py, not by main.py)\n\n")
+    with open(OUT_DIR / "q4_step_size_experiment.txt", "w") as fh:
+        fh.write("Step-size selection for Question 4\n\n")
         fh.write(f"lambda = {LAM}\nL = {L:.12e}\n2/L = {2.0 / L:.12e}\n")
         fh.write(f"stopping rule: ||g_k|| <= {TOL:g} * ||g_0||\n")
         fh.write(f"candidates: {SWEEP_C} within 2/L, {PROBE_C} beyond it\n\n")
 
-        fh.write("1. DOES THE RANKING DEPEND ON THE STARTING POINT?\n")
-        fh.write(f"   {SHORT_ITERS} iterations from each of the seeds "
-                 f"{SHORT_SEEDS}, ranked by ||g_k||/||g_0|| (best first)\n\n")
+        fh.write(f"Experiment 1 ({SHORT_ITERS} iterations, seeds {SHORT_SEEDS})\n")
+        fh.write("Ranked by ||g_k||/||g_0||\n\n")
         for seed, order in zip(SHORT_SEEDS, orderings):
             fh.write(f"     seed {seed:>2}:  "
                      + "  <  ".join(f"{c:g}" for c in order) + "\n")
-        fh.write(f"\n   identical across all {len(SHORT_SEEDS)} seeds: {identical}\n")
-        fh.write("   => the starting point moves the numbers but not the order,\n"
-                 "      so one seed is enough for the selection below.\n\n")
+        fh.write(f"\n   ranking identical across all seeds: {identical}\n\n\n")
 
-        fh.write(f"2. ITERATIONS TO THE STOPPING RULE (seed {SEED})\n\n")
-        fh.write("        c   iterations   c * iterations\n")
+        fh.write(f"Experiment 2 (seed {SEED})\n\n")
+        fh.write("        c   iterations   c * iterations      f_final\n")
         products = []
         for c in all_c:
             it = results[c]["iters"]
@@ -159,16 +164,11 @@ def write_report(L, orderings, identical, results, all_c):
                 fh.write(f"     {c:4.1f}   not reached\n")
                 continue
             products.append(c * it)
-            fh.write(f"     {c:4.1f}   {it:10d}   {c * it:14.0f}\n")
-        if products:
-            spread = (max(products) - min(products)) / min(products)
-            fh.write(f"\n   c * iterations is constant to within {100 * spread:.1f}%, "
-                     f"i.e. iterations ~ 1/c.\n")
-
+            fh.write(f"     {c:4.1f}   {it:10d}   {c * it:14.0f}   "
+                     f"{results[c]['objectives'][-1]:10.4e}\n")
         reached = [c for c in all_c if results[c]["iters"] is not None]
-        beyond = [c for c in reached if c in PROBE_C]
-        if beyond:
-            fh.write(f"   the candidates beyond 2/L ({beyond}) converged as well.\n")
+
+        fh.write("\n   \n")
         if reached:
             best = min(reached, key=lambda c: results[c]["iters"])
             fh.write(f"\n   fastest overall: c = {best} "

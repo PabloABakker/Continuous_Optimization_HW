@@ -1,9 +1,10 @@
 """
-Figures and file output for Questions 4 and 5.
+Figures and file output for Questions 3, 4 and 5, in that order.
 
-Kept apart from main.py so that question4() and question5() read as
-what they do -- run the method, compute the guarantee -- rather than as
-sixty lines of matplotlib and twenty of file writing.  Nothing here imports
+Kept apart from main.py so that question3(), question4() and question5()
+read as what they do -- check the gradient, run the method, compare with the
+guarantee -- rather than as sixty lines of matplotlib and twenty of file
+writing.  Nothing here imports
 main: every quantity is passed in, so the two modules stay independent and
 the figures can be redrawn from a saved history without running gradient
 descent again:
@@ -23,6 +24,40 @@ import matplotlib.pyplot as plt
 OBSERVED_COLOR = "#2a78d6"
 THEORY_COLOR = "#eb6834"
 RULE_COLOR = "#52514e"
+
+
+def plot_gradient_check(t, err, mask, floor, results_dir):
+    """
+    Q3 deliverable: the Taylor remainder against t, in log-log coordinates.
+
+    `mask` is the window the slope was fitted on, shaded here so the figure
+    shows which points the number came from.  The O(t^2) reference is scaled
+    to sit on the data, so what matters is that the two are parallel, not
+    that they coincide.
+    """
+    if not mask.any():
+        raise ValueError("empty fit window: every remainder is below the "
+                         "round-off floor, so the slope could not be measured")
+    C = np.median(err[mask] / t[mask] ** 2)
+
+    # the fit uses err > floor, but the curve is drawn over every t, and a
+    # log axis cannot show a remainder that cancelled to exactly zero
+    pos = err > 0.0
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.loglog(t[pos], err[pos], label="Taylor remainder")
+    ax.loglog(t, C * t ** 2, "--", label=r"$O(t^2)$ reference")
+    ax.axhline(floor, color="gray", ls=":", lw=1, label="round-off floor")
+    ax.axvspan(t[mask][0], t[mask][-1], color="gray", alpha=0.12,
+               label="fit window")
+    ax.set_xlabel(r"$t$")
+    ax.set_ylabel(r"$|f_\lambda(\theta+tv)-f_\lambda(\theta)"
+                  r"-t\langle v,\nabla f_\lambda(\theta)\rangle|$")
+    ax.set_title("Gradient check")
+    ax.grid(True, which="both", ls=":")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(results_dir / "q3_gradient_check.pdf")
+    plt.close(fig)
 
 
 def save_q4_results(results_dir, k, objectives, grad_norms, theta0,
@@ -52,7 +87,7 @@ def save_q4_results(results_dir, k, objectives, grad_norms, theta0,
         fh.write(f"L = {L:.12e}   sigma_max(X) = {sigma_max:.12e}   "
                  f"lambda = {lam}   seed = {seed}\n")
         fh.write("(step size chosen from step_size_experiment.py; "
-                 "see q4_step_size_experiment.txt)\n\n")
+                 "see q4_stepsize_selection(disregard)/)\n\n")
         fh.write(f"stopping rule: ||g_k|| <= {tol:g} * ||g_0||\n\n")
         fh.write(f"Objective       f(theta_0)     = {objectives[0]:.6e}\n")
         fh.write(f"                f(theta_final) = {objectives[-1]:.6e}"
@@ -62,34 +97,9 @@ def save_q4_results(results_dir, k, objectives, grad_norms, theta0,
                  f"     (ratio {grad_norms[-1] / grad_norms[0]:.3e})\n")
 
 
-def plot_gradient_check(t, err, mask, floor, results_dir):
-    """Q3 deliverable: the Taylor remainder against t, in log-log coordinates.
-
-    `mask` is the window the slope was fitted on, shaded here so the figure
-    shows which points the number came from.  The O(t^2) reference is scaled
-    to sit on the data, so what matters is that the two are parallel, not
-    that they coincide.
-    """
-    C = np.median(err[mask] / t[mask] ** 2)
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.loglog(t, err, label="Taylor remainder")
-    ax.loglog(t, C * t ** 2, "--", label=r"$O(t^2)$ reference")
-    ax.axhline(floor, color="gray", ls=":", lw=1, label="round-off floor")
-    ax.axvspan(t[mask][0], t[mask][-1], color="gray", alpha=0.12,
-               label="fit window")
-    ax.set_xlabel(r"$t$")
-    ax.set_ylabel(r"$|f_\lambda(\theta+tv)-f_\lambda(\theta)"
-                  r"-t\langle v,\nabla f_\lambda(\theta)\rangle|$")
-    ax.set_title("Gradient check")
-    ax.grid(True, which="both", ls=":")
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(results_dir / "q3_gradient_check.pdf")
-    plt.close(fig)
-
-
 def plot_convergence(objectives, grad_norms, bound, c, results_dir):
-    """Q5 deliverable: f_lambda(theta_k) and ||grad f_lambda(theta_k)|| vs k.
+    """
+    Q5 deliverable: f_lambda(theta_k) and ||grad f_lambda(theta_k)|| vs k.
 
     `bound` is Corollary 4.32 evaluated at the same k, and is drawn on the
     gradient panel.  Over the run's own range it is visually flat, which is
@@ -106,7 +116,9 @@ def plot_convergence(objectives, grad_norms, bound, c, results_dir):
                      label="observed", zorder=3)
     axes[1].semilogy(k, bound, color=THEORY_COLOR, lw=1.8, ls="--",
                      label=r"theoretical bound, $\alpha=%g/L$" % c)
-    axes[1].set_ylim(grad_norms[-1] / 3.0, bound[0] * 4.0)
+    # a diverged run ends in inf or nan, which would make the limits unusable
+    finite = grad_norms[np.isfinite(grad_norms) & (grad_norms > 0.0)]
+    axes[1].set_ylim(finite.min() / 3.0, bound[0] * 4.0)
     axes[1].set(xlabel="Iteration $k$",
                 ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
                 title="Gradient norm: run vs guarantee")
@@ -121,7 +133,8 @@ def plot_convergence(objectives, grad_norms, bound, c, results_dir):
 
 
 def plot_theory_horizon(grad_norms, prefactor, rho, c, tol, results_dir):
-    """Second figure: the same guarantee carried out to where it lands.
+    """
+    Second figure: the same guarantee carried out to where it lands.
 
     We run a second graph with log x-axis too to be able to clearly see the
     comparison between theoretical and experimental results up to the end.
