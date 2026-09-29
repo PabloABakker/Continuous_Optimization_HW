@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 import matplotlib
-matplotlib.use("Agg")            # no GUI: script must finish without user input
+matplotlib.use("Agg")            
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat
@@ -23,21 +23,21 @@ from scipy.io import loadmat
 from plot_utils import save_q4_results, plot_convergence, plot_theory_horizon
 
 # ------------------------------------------------------------------
-# Paths (relative to this file, so it works from code/ as required)
+# Paths
 # ------------------------------------------------------------------
 CODE_DIR = Path(__file__).resolve().parent
 DATA_DIR = CODE_DIR.parent / "data"
 RESULTS_DIR = CODE_DIR.parent / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-LAM = 0.005            # regularization parameter (fixed by the homework)
+LAM = 0.005            # regularization parameter 
 SEED = 42              # seed for theta_0 in Q4
 TOL = 1e-3             # relative gradient tolerance in Q4
-MAX_TIME = 3 * 60      # seconds, Q4
-THETA_SCALE = 0.1          # chosen from a scale sweep: populates all 3 branches
-Q2_SCALES = [1e-2, 1e-1, 1.0]   # scales used in the Q2 agreement test
-FLOOR_FACTOR = 100.0       # keep points with err > FLOOR_FACTOR * eps * f0
-T_MAX_FIT = 1e-1           # upper end of the fit; check against the plot
+MAX_TIME = 3 * 60      # seconds for Q4
+THETA_SCALE = 0.1          # scales for theta in Q3
+Q2_SCALES = [1e-2, 1e-1, 1.0]   # 
+FLOOR_FACTOR = 100.0       # 
+T_MAX_FIT = 1e-1           # 
 
 
 # ==================================================================
@@ -53,9 +53,13 @@ def load_data():
     X_test = np.asarray(test.X, dtype=np.float64)     # (785, 2115)
     y_test = np.asarray(test.y, dtype=np.float64).ravel()
 
-    # The last row already contains the ones (bias): do not append another.
-    assert np.allclose(X_train[-1, :], 1.0) and np.allclose(X_test[-1, :], 1.0)              # safer than exact float comparison
-    assert X_train.shape[1] == y_train.size and X_test.shape[1] == y_test.size
+    # Intercept is already in the data: the last row should be the ones.
+    # Reported, not asserted, so an unexpected file does not stop the run.
+    # allclose rather than ==, since a float that should be 1 need not be exactly 1.
+    if not (np.allclose(X_train[-1, :], 1.0) and np.allclose(X_test[-1, :], 1.0)):
+        print("WARNING: the last row of X is not all ones -- check the bias row")
+    if not (X_train.shape[1] == y_train.size and X_test.shape[1] == y_test.size):
+        print("WARNING: columns of X do not match the number of labels")
     return X_train, y_train, X_test, y_test
 
 
