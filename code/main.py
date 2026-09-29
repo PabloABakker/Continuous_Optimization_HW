@@ -147,6 +147,12 @@ def time_it(func, args, reps, warmup=2):
 
 def question2(X, s):
     """
+    Computes the relative error between the loop and vectorized implementations
+    of both the objective function and its gradient, for 3 random theta following
+    a normal distribution with different scales.
+    
+    For a fixed scale, gives the median runtime of both implementations and the 
+    corresponding speedup factor.
     """
     print("\n=== Q2: objective and gradient ===")
   
@@ -207,18 +213,20 @@ def question2(X, s):
 # ==================================================================
 # Q3: gradient check
 # ==================================================================
-# The fitting window is chosen from properties of the curve that do NOT
-# involve its slope: the remainder must be above the round-off floor
-# (differences of numbers of size f0 lose digits below ~eps*f0) and below
-# the large-t region where the second-order model stops being accurate.
-# Choosing the window by "slope close to 2" would make the test unable to
-# fail, since a wrong gradient (slope 1) would simply never be reported.
-
+# The expected slope of the log-log plot should be close to 2, since the 
+# Taylor remainder is O(t²). However, a fitting window is chosen such that
+# the remainder is well above the round-off floor (differences of numbers of 
+# size f(theta) lose digits below ~eps*f(theta), being eps the machine epsilon) 
+# and below the large-t region where the second-order approximation stops being 
+# accurate.
 
 def question3(X, s):
     """
-    
-    
+    Computes and plots the absolute difference between the finite-difference 
+    approximation f(theta + t v) - f(theta) and the directional derivative of 
+    f at a random theta (for a fixed scale) along a random unit vector v, as a 
+    function of t in logarithmic scale. Gives the slope of the log-log plot at 
+    the chosen fitting window. 
     """
     print("\n=== Q3: gradient check ===")
     # choice of theta and unit vector v
