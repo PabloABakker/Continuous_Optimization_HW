@@ -70,9 +70,16 @@ def plot_gradient_check(t, err, mask, floor, results_dir):
     to sit on the data, so what matters is that the two are parallel, not
     that they coincide.
     """
+    if not mask.any():
+        raise ValueError("empty fit window: every remainder is below the "
+                         "round-off floor, so the slope could not be measured")
     C = np.median(err[mask] / t[mask] ** 2)
+
+    # the fit uses err > floor, but the curve is drawn over every t, and a
+    # log axis cannot show a remainder that cancelled to exactly zero
+    pos = err > 0.0
     fig, ax = plt.subplots(figsize=(7, 5))
-    ax.loglog(t, err, label="Taylor remainder")
+    ax.loglog(t[pos], err[pos], label="Taylor remainder")
     ax.loglog(t, C * t ** 2, "--", label=r"$O(t^2)$ reference")
     ax.axhline(floor, color="gray", ls=":", lw=1, label="round-off floor")
     ax.axvspan(t[mask][0], t[mask][-1], color="gray", alpha=0.12,
@@ -106,7 +113,9 @@ def plot_convergence(objectives, grad_norms, bound, c, results_dir):
                      label="observed", zorder=3)
     axes[1].semilogy(k, bound, color=THEORY_COLOR, lw=1.8, ls="--",
                      label=r"theoretical bound, $\alpha=%g/L$" % c)
-    axes[1].set_ylim(grad_norms[-1] / 3.0, bound[0] * 4.0)
+    # a diverged run ends in inf or nan, which would make the limits unusable
+    finite = grad_norms[np.isfinite(grad_norms) & (grad_norms > 0.0)]
+    axes[1].set_ylim(finite.min() / 3.0, bound[0] * 4.0)
     axes[1].set(xlabel="Iteration $k$",
                 ylabel=r"$\|\nabla f_\lambda(\theta_k)\|$",
                 title="Gradient norm: run vs guarantee")
