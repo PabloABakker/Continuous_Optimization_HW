@@ -69,6 +69,32 @@ def save_q4_results(results_dir, k, objectives, grad_norms, theta0,
                  f"     (ratio {grad_norms[-1] / grad_norms[0]:.3e})\n")
 
 
+def plot_gradient_check(t, err, mask, floor, results_dir):
+    """Q3 deliverable: the Taylor remainder against t, in log-log coordinates.
+
+    `mask` is the window the slope was fitted on, shaded here so the figure
+    shows which points the number came from.  The O(t^2) reference is scaled
+    to sit on the data, so what matters is that the two are parallel, not
+    that they coincide.
+    """
+    C = np.median(err[mask] / t[mask] ** 2)
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.loglog(t, err, label="Taylor remainder")
+    ax.loglog(t, C * t ** 2, "--", label=r"$O(t^2)$ reference")
+    ax.axhline(floor, color="gray", ls=":", lw=1, label="round-off floor")
+    ax.axvspan(t[mask][0], t[mask][-1], color="gray", alpha=0.12,
+               label="fit window")
+    ax.set_xlabel(r"$t$")
+    ax.set_ylabel(r"$|f_\lambda(\theta+tv)-f_\lambda(\theta)"
+                  r"-t\langle v,\nabla f_\lambda(\theta)\rangle|$")
+    ax.set_title("Gradient check")
+    ax.grid(True, which="both", ls=":")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(results_dir / "q3_gradient_check.pdf")
+    plt.close(fig)
+
+
 def plot_convergence(objectives, grad_norms, bound, c, results_dir):
     """Q5 deliverable: f_lambda(theta_k) and ||grad f_lambda(theta_k)|| vs k.
 

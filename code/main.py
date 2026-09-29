@@ -14,13 +14,13 @@ import time
 from pathlib import Path
 
 import matplotlib
-matplotlib.use("Agg")            
-import matplotlib.pyplot as plt
+matplotlib.use("Agg")            # no GUI: must be set before pyplot is imported anywhere
 import numpy as np
 from scipy.io import loadmat
 
-# figures for Q5 (imported after the Agg backend is selected above)
-from plot_utils import save_q4_results, plot_convergence, plot_theory_horizon
+# every figure lives in plot_utils; imported after the Agg backend is selected above
+from plot_utils import (save_q4_results, plot_gradient_check,
+                        plot_convergence, plot_theory_horizon)
 
 # ------------------------------------------------------------------
 # Paths
@@ -53,11 +53,9 @@ def load_data():
     X_test = np.asarray(test.X, dtype=np.float64)     # (785, 2115)
     y_test = np.asarray(test.y, dtype=np.float64).ravel()
 
-    # Intercept is already in the data: the last row should be the ones.
-    # Reported, not asserted, so an unexpected file does not stop the run.
-    # allclose rather than ==, since a float that should be 1 need not be exactly 1.
+    # Check intercept and number of parameters to avoid computational issues
     if not (np.allclose(X_train[-1, :], 1.0) and np.allclose(X_test[-1, :], 1.0)):
-        print("WARNING: the last row of X is not all ones -- check the bias row")
+        print("WARNING: no intercept on the last row")                      
     if not (X_train.shape[1] == y_train.size and X_test.shape[1] == y_test.size):
         print("WARNING: columns of X do not match the number of labels")
     return X_train, y_train, X_test, y_test
@@ -68,9 +66,11 @@ def signs(y):
     return 1.0 - 2.0 * y
 
 
+
 # ==================================================================
 # Q2: objective and gradient
 # ==================================================================
+
 # ---- explicit loops ------------------------------------------------
 def f_loop(theta, X, s, lam):
     value = 0.5 * lam * float(theta @ theta)
@@ -100,9 +100,9 @@ def grad_loop(theta, X, s, lam):
     return grad
 
 
-# ---- vectorized ----------------------------------------------------
+# ---- vectorized functions ----------------------------------------------------
 def _phi(z):
-    # phi(z) = 0.5*clip(1+z,0,1)^2 + max(z,0)   (equals the piecewise def.)
+    # phi(z) = 0.5*clip(1+z,0,1)^2 + max(z,0)   (equals the piecewise definition)
     return 0.5 * np.clip(1.0 + z, 0.0, 1.0) ** 2 + np.maximum(z, 0.0)
 
 
@@ -120,7 +120,7 @@ def grad_vec(theta, X, s, lam):
     z = s * (X.T @ theta)
     return X @ (s * _dphi(z)) + lam * theta
 
-
+# unified function used in later questions to avoid computing two times z
 def f_and_grad(theta, X, s, lam):
     z = s * (X.T @ theta)
     f = np.sum(_phi(z)) + 0.5 * lam * (theta @ theta)
@@ -129,10 +129,14 @@ def f_and_grad(theta, X, s, lam):
 
 
 # ---- timing --------------------------------------------------------
+                    # REVIEW + final elements 
 def time_it(func, args, reps, warmup=2):
     """Median and minimum wall-clock time over `reps` calls, after warm-up."""
+    # 
     for _ in range(warmup):
         func(*args)
+
+    # count the time for each repetitions and saves in times
     times = []
     for _ in range(reps):
         t0 = time.perf_counter()
@@ -143,43 +147,43 @@ def time_it(func, args, reps, warmup=2):
 
 def question2(X, s):
     print("\n=== Q2: objective and gradient ===")
-    rng = np.random.default_rng(0)
-
-    # ---- numerical agreement, loop vs vectorized ----------------------
-    per_scale = []
+  
+    # ---- numerical agreement: loop vs vectorized ----------------------
+    rng = np.random.default_rng(0)     # fix seed outside of the loop
+    per_scale = []                     # allows to check precision uniformly on the 3 parts of phi 
     for scale in Q2_SCALES:
         theta = scale * rng.standard_normal(X.shape[0])
 
+        # running loop and vectorisation + numerical comparison
         fl, fv = f_loop(theta, X, s, LAM), f_vec(theta, X, s, LAM)
         gl, gv = grad_loop(theta, X, s, LAM), grad_vec(theta, X, s, LAM)
         rel_f = abs(fl - fv) / max(1.0, abs(fl))
         rel_g = np.linalg.norm(gl - gv) / max(1.0, np.linalg.norm(gl))
 
+        # save per scale results in list
         per_scale.append(dict(
             scale=float(scale),
             rel_objective_error=float(rel_f),
             rel_gradient_error=float(rel_g),
         ))
-        print(f"  scale = {scale:>5g}: "
-              f"rel. error  f = {rel_f:.2e},  grad = {rel_g:.2e}")
 
+    # determines maximum error between loop and vectorisation
     max_f = max(p["rel_objective_error"] for p in per_scale)
     max_g = max(p["rel_gradient_error"] for p in per_scale)
-    print(f"  max relative error over all scales: f = {max_f:.2e}, "
-          f"grad = {max_g:.2e}")
 
-    # ---- run times, at a single theta ---------------------------------
-    theta = THETA_SCALE * np.random.default_rng(1).standard_normal(X.shape[0])
+
+
+    # ---- run times ---------------------------------
+    theta = THETA_SCALE * np.random.default_rng(1).standard_normal(X.shape[0]) # fix new seed - scale 0.1 to have 3 branches touched without different scales
     args = (theta, X, s, LAM)
-    t_fl, t_fl_min = time_it(f_loop, args, reps=5)
+    t_fl, t_fl_min = time_it(f_loop, args, reps=5)     # only 5 reps to avoid long running time
     t_fv, t_fv_min = time_it(f_vec, args, reps=100)
     t_gl, t_gl_min = time_it(grad_loop, args, reps=5)
     t_gv, t_gv_min = time_it(grad_vec, args, reps=100)
-    print(f"  median time  f: loop {t_fl:.3e}s | vec {t_fv:.3e}s | "
-          f"speed-up {t_fl/t_fv:.0f}x")
-    print(f"  median time  g: loop {t_gl:.3e}s | vec {t_gv:.3e}s | "
-          f"speed-up {t_gl/t_gv:.0f}x")
+    
 
+
+    # save results (both numerical agreement and run times) in : results/q2_summary.json
     with open(RESULTS_DIR / "q2_summary.json", "w") as fh:
         json.dump(dict(
             per_scale=per_scale,
@@ -201,6 +205,8 @@ def question2(X, s):
         ), fh, indent=2)
 
 
+
+
 # ==================================================================
 # Q3: gradient check
 # ==================================================================
@@ -213,18 +219,22 @@ def question2(X, s):
 
 
 def question3(X, s):
+    """
+    
+    
+    """
     print("\n=== Q3: gradient check ===")
-    rng = np.random.default_rng(0)
+    # choice of theta and unit vector v
+    rng = np.random.default_rng(0) 
     theta = THETA_SCALE * rng.standard_normal(X.shape[0])
     v = rng.standard_normal(X.shape[0])
-    v /= np.linalg.norm(v)                      # unit direction
+    v = v/np.linalg.norm(v)                      
 
-    # X^T (theta + t v) = X^T theta + t X^T v, so the two products below are
-    # computed once instead of once per value of t.
+    # we know that X^T (theta + t v) = X^T theta + t X^T v, so we compute already: 
     a = s * (X.T @ theta)
     b = s * (X.T @ v)
 
-    f0, g0 = f_and_grad(theta, X, s, LAM)
+    f0, g0 = f_and_grad(theta, X, s, LAM)       # see function defined in q2
     directional = float(v @ g0)
 
     # regularizer along the line: ||theta + t v||^2 = ||theta||^2 + 2t<theta,v> + t^2
@@ -242,32 +252,19 @@ def question3(X, s):
                np.column_stack((t, err)), delimiter=",",
                header="t,error", comments="")
 
+
+
+
     # ---- fit the straight portion --------------------------------------
     floor = FLOOR_FACTOR * np.finfo(float).eps * abs(f0)
     mask = (err > floor) & (t <= T_MAX_FIT)
     slope, _ = np.polyfit(np.log10(t[mask]), np.log10(err[mask]), 1)
-    print(f"  f(theta) = {f0:.3e}, round-off floor ~ {floor:.2e}")
-    print(f"  fit window: t in [{t[mask][0]:.2e}, {t[mask][-1]:.2e}] "
-          f"({int(mask.sum())} points)")
-    print(f"  log-log slope = {slope:.4f}")
+
+
+
 
     # ---- figure ---------------------------------------------------------
-    C = np.median(err[mask] / t[mask] ** 2)
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.loglog(t, err, label="Taylor remainder")
-    ax.loglog(t, C * t ** 2, "--", label=r"$O(t^2)$ reference")
-    ax.axhline(floor, color="gray", ls=":", lw=1, label="round-off floor")
-    ax.axvspan(t[mask][0], t[mask][-1], color="gray", alpha=0.12,
-               label="fit window")
-    ax.set_xlabel(r"$t$")
-    ax.set_ylabel(r"$|f_\lambda(\theta+tv)-f_\lambda(\theta)"
-                  r"-t\langle v,\nabla f_\lambda(\theta)\rangle|$")
-    ax.set_title("Gradient check")
-    ax.grid(True, which="both", ls=":")
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(RESULTS_DIR / "q3_gradient_check.pdf")
-    plt.close(fig)
+    plot_gradient_check(t, err, mask, floor, RESULTS_DIR)
 
     with open(RESULTS_DIR / "q3_slope.txt", "w") as fh:
         fh.write(f"theta scale: {THETA_SCALE}\n")
@@ -275,6 +272,8 @@ def question3(X, s):
         fh.write(f"round-off floor (={FLOOR_FACTOR}*eps*f0): {floor:.6e}\n")
         fh.write(f"fit window: t in [{t[mask][0]:.6e}, {t[mask][-1]:.6e}]\n")
         fh.write(f"log-log slope: {slope:.6f}\n")
+
+
 
 
 # ==================================================================
@@ -371,6 +370,8 @@ def question4(X, s, L):
     return theta, objectives, grad_norms
 
 
+
+
 # ==================================================================
 # Q5: convergence plots
 # ==================================================================
@@ -384,7 +385,6 @@ def question4(X, s, L):
 def question5(objectives, grad_norms, L):
     """
     Q5: plot the run from Question 4 with the theoretical guarantee for the gradient
-
 
     Nothing is re-run here: `objectives` and `grad_norms` are the histories
     recorded during the Q4 descent.  The figures themselves live in
@@ -401,6 +401,8 @@ def question5(objectives, grad_norms, L):
     # plot results - functions in utils
     plot_convergence(objectives, grad_norms, bound, c, RESULTS_DIR)
     plot_theory_horizon(grad_norms, prefactor, rho, c, TOL, RESULTS_DIR)
+
+
 
 
 # ==================================================================
@@ -428,7 +430,6 @@ def question7(theta, X_tr, y_tr, X_te, y_te):
 def main():
     X_tr, y_tr, X_te, y_te = load_data()
     s_tr = signs(y_tr)
-    print(f"train X {X_tr.shape}, test X {X_te.shape}, lambda = {LAM}")
 
     L = float(np.linalg.eigvalsh(X_tr @ X_tr.T)[-1]) + LAM # make sure its not computed again!!
 
