@@ -37,15 +37,18 @@ from main import load_data, signs, run_gd, LAM, TOL, SEED, RESULTS_DIR
 # Candidates within theoretical range
 SWEEP_C = [0.5, 1.0, 1.5, 1.9]
 # Probes beyond the guarantee to test how conservative the bound is, carried
-# far enough to see where the 1/c scaling starts to drift
-PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0, 25.0]
+# far enough to see the 1/c scaling drift and then the solution degrade
+PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0, 25.0, 50.0]
 
 SHORT_SEEDS = [42, 0, 7] 
 SHORT_ITERS = 500         
 CHECKPOINTS = [10, 50, 100, 200, 500]
 
 LONG_MAX_ITER = 60000
-LONG_MAX_TIME = 120.0
+# generous: the slowest candidate (c = 0.5) needs ~44000 iterations, about 85 s
+# on an idle machine. The iteration cap is the real backstop; this one is only
+# here so a diverging run cannot hang, and must not trip on a loaded laptop.
+LONG_MAX_TIME = 300.0
 
 COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]
 
@@ -164,17 +167,31 @@ def write_report(L, orderings, identical, results, all_c):
             products.append(c * it)
             fh.write(f"     {c:4.1f}   {it:10d}   {c * it:14.0f}   "
                      f"{results[c]['objectives'][-1]:10.4e}\n")
-        if products:
-            spread = (max(products) - min(products)) / min(products)
-            fh.write(f"\n   c * iterations is constant to within {100 * spread:.1f}%, "
-                     f"i.e. iterations ~ 1/c.\n")
-
         reached = [c for c in all_c if results[c]["iters"] is not None]
-        beyond = [c for c in reached if c in PROBE_C]
-        if beyond:
-            fh.write(f"   the candidates beyond 2/L ({beyond}) converged as well,\n"
-                     f"   and to the same objective value: the bound (0, 2/L) is\n"
-                     f"   sufficient for convergence here, not necessary.\n")
+
+        # A larger step is only genuinely better if it lands at the same
+        # minimiser.  Take the best objective reached as the reference and
+        # call a candidate clean while it stays within 1% of it.
+        if reached:
+            f_ref = min(results[c]["objectives"][-1] for c in reached)
+            clean = [c for c in reached
+                     if results[c]["objectives"][-1] <= 1.01 * f_ref]
+            prod = [c * results[c]["iters"] for c in clean]
+            spread = (max(prod) - min(prod)) / min(prod)
+            fh.write(f"\n   Over c = {min(clean):g} .. {max(clean):g} every run reaches the same\n"
+                     f"   objective (within 1%), and c * iterations is constant to within\n"
+                     f"   {100 * spread:.1f}%: the iteration count scales as 1/c. The interval\n"
+                     f"   (0, 2/L) is therefore sufficient for convergence here, not necessary.\n")
+            degraded = [c for c in reached if c not in clean]
+            if degraded:
+                fh.write(f"\n   Past c = {min(degraded):g} the objective rises "
+                         f"({results[min(degraded)]['objectives'][-1]:.4e} against "
+                         f"{f_ref:.4e}) while the\n"
+                         f"   iteration count keeps falling. The run is satisfying the stopping\n"
+                         f"   rule in the flat branch of phi, where the gradient is almost\n"
+                         f"   entirely the regularisation term lambda*theta, rather than at the\n"
+                         f"   minimiser. Iterations alone would not reveal this, which is why\n"
+                         f"   f_final is reported.\n")
         if reached:
             best = min(reached, key=lambda c: results[c]["iters"])
             fh.write(f"\n   fastest overall: c = {best} "
