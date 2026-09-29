@@ -2,27 +2,37 @@
 
 Andrés Alarcón Navarro · Pablo Agustin Bakker · Gabriel Alberto Klingler Mora · Timo Lassoeur
 
+## Required packages
+
+`numpy`, `scipy` and `matplotlib`. Nothing else beyond the standard library.
+
+Versions used: Python 3.13.12, numpy 2.4.4, scipy 1.17.1, matplotlib 3.10.9.
+Matplotlib runs on the `Agg` backend, so no display is needed.
+
 ## How to run
 
 From the `code/` folder:
 
 ```bash
-python main_andres.py
+python main.py
 ```
 
-This reproduces every file in `results/` except the four `q4_step_size_*` ones.
-It reads `../data/mnist_train_test.mat` and takes roughly one minute, most of
-it the Q4 gradient descent (~11570 iterations, ~21 s).
+It reads `../data/mnist_train_test.mat`, writes every file in `../results/`
+listed below, needs no user input, and runs to completion on its own.
 
-The step-size grid search is a separate script, run once:
+**Execution time: 23 seconds** (MacBook, Apple silicon), almost all of it the
+Question 4 gradient descent: 11570 iterations at about 2 ms each.
+
+### The step-size search is not part of that run
 
 ```bash
-python step_size_experiment.py          # ~4 minutes
+python step_size_experiment.py          # ~4 minutes, do not run to grade
 ```
 
-It is deliberately **not** called by `main_andres.py`: the chosen step size is
-hard-coded there as `CHOSEN_C = 1.9`, so the graded run is deterministic and
-does not pay for the search.
+This one-off script produced `CHOSEN_C = 1.9` and the two `q4_step_size_*`
+files already in `results/`. It is deliberately **not** called by `main.py`:
+the step size is hard-coded there, so the graded run is deterministic and does
+not pay the four minutes.
 
 ## Where each answer is saved
 
@@ -72,10 +82,10 @@ Questions 1, 6 and 8 are theoretical and produce no files.
 
 | File | Role |
 |---|---|
-| `main_andres.py` | Everything graded: data loading, both implementations of the objective and gradient, and Questions 2, 3, 4, 5 and 7. |
-| `plot_utils.py` | The two Question 5 figures. Imports nothing from `main_andres.py`, so either figure can be redrawn from a saved history. |
+| `main.py` | Everything graded: data loading, both implementations of the objective and gradient, and Questions 2, 3, 4, 5 and 7. |
+| `plot_utils.py` | The two Question 5 figures. Imports nothing from `main.py`, so either figure can be redrawn from a saved history. |
 | `step_size_experiment.py` | The one-off step-size search behind `CHOSEN_C`. |
-| `main.py`, `utils.py` | Exploratory scratch work kept for reference. Not part of the graded pipeline and writes nothing to `results/`. |
+| `main_.py`, `utils.py` | Earlier drafts kept for reference. Not part of the graded pipeline; `main.py` is the entry point. |
 
 ## Conventions
 

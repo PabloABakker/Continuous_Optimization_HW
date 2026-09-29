@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 import matplotlib
-matplotlib.use("Agg")            # no GUI: script must finish without user input
+matplotlib.use("Agg") # no GUI: script must finish without user input
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat
@@ -22,22 +22,22 @@ from scipy.io import loadmat
 # figures for Q5 (imported after the Agg backend is selected above)
 from plot_utils import save_q4_results, plot_convergence, plot_theory_horizon
 
-# ------------------------------------------------------------------
+# ==================================================================
 # Paths (relative to this file, so it works from code/ as required)
-# ------------------------------------------------------------------
+# ==================================================================
 CODE_DIR = Path(__file__).resolve().parent
 DATA_DIR = CODE_DIR.parent / "data"
 RESULTS_DIR = CODE_DIR.parent / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-LAM = 0.005            # regularization parameter (fixed by the homework)
-SEED = 42              # seed for theta_0 in Q4
-TOL = 1e-3             # relative gradient tolerance in Q4
-MAX_TIME = 3 * 60      # seconds, Q4
-THETA_SCALE = 0.1          # chosen from a scale sweep: populates all 3 branches
-Q2_SCALES = [1e-2, 1e-1, 1.0]   # scales used in the Q2 agreement test
-FLOOR_FACTOR = 100.0       # keep points with err > FLOOR_FACTOR * eps * f0
-T_MAX_FIT = 1e-1           # upper end of the fit; check against the plot
+LAM = 0.005  # regularization parameter 
+SEED = 42  # seed for theta_0 in Q4
+TOL = 1e-3  # relative gradient tolerance in Q4
+MAX_TIME = 3 * 60  # seconds, Q4
+THETA_SCALE = 0.1  # chosen from a scale sweep: populates all 3 branches
+Q2_SCALES = [1e-2, 1e-1, 1.0]  # scales used in the Q2 agreement test
+FLOOR_FACTOR = 100.0  # keep points with err > FLOOR_FACTOR * eps * f0
+T_MAX_FIT = 1e-1  # upper end of the fit; check against the plot
 
 
 # ==================================================================
@@ -48,13 +48,13 @@ def load_data():
     data = loadmat(str(path), squeeze_me=True, struct_as_record=False)
     train, test = data["train"], data["test"]
 
-    X_train = np.asarray(train.X, dtype=np.float64)   # (785, 12665)
+    X_train = np.asarray(train.X, dtype=np.float64)  # (785, 12665)
     y_train = np.asarray(train.y, dtype=np.float64).ravel()
-    X_test = np.asarray(test.X, dtype=np.float64)     # (785, 2115)
+    X_test = np.asarray(test.X, dtype=np.float64)  # (785, 2115)
     y_test = np.asarray(test.y, dtype=np.float64).ravel()
 
     # The last row already contains the ones (bias): do not append another.
-    assert np.allclose(X_train[-1, :], 1.0) and np.allclose(X_test[-1, :], 1.0)              # safer than exact float comparison 
+    assert np.allclose(X_train[-1, :], 1.0) and np.allclose(X_test[-1, :], 1.0)  # safer than exact float comparison 
     assert X_train.shape[1] == y_train.size and X_test.shape[1] == y_test.size
     return X_train, y_train, X_test, y_test
 
@@ -67,7 +67,8 @@ def signs(y):
 # ==================================================================
 # Q2: objective and gradient
 # ==================================================================
-# ---- explicit loops ------------------------------------------------
+
+# Explicit Loops 
 def f_loop(theta, X, s, lam):
     value = 0.5 * lam * float(theta @ theta)
     for i in range(X.shape[1]):
@@ -80,7 +81,6 @@ def f_loop(theta, X, s, lam):
             phi = 0.5 + z
         value += phi
     return value
-
 
 def grad_loop(theta, X, s, lam):
     grad = lam * theta
@@ -96,26 +96,22 @@ def grad_loop(theta, X, s, lam):
     return grad
 
 
-# ---- vectorized ----------------------------------------------------
+# Vectorized 
 def _phi(z):
     # phi(z) = 0.5*clip(1+z,0,1)^2 + max(z,0)   (equals the piecewise def.)
     return 0.5 * np.clip(1.0 + z, 0.0, 1.0) ** 2 + np.maximum(z, 0.0)
-
 
 def _dphi(z):
     # phi'(z) = clip(1+z, 0, 1)
     return np.clip(1.0 + z, 0.0, 1.0)
 
-
 def f_vec(theta, X, s, lam):
     z = s * (X.T @ theta)
     return np.sum(_phi(z)) + 0.5 * lam * (theta @ theta)
 
-
 def grad_vec(theta, X, s, lam):
     z = s * (X.T @ theta)
     return X @ (s * _dphi(z)) + lam * theta
-
 
 def f_and_grad(theta, X, s, lam):
     z = s * (X.T @ theta)
@@ -124,7 +120,7 @@ def f_and_grad(theta, X, s, lam):
     return f, g
 
 
-# ---- timing --------------------------------------------------------
+# Timing
 def time_it(func, args, reps, warmup=2):
     """Median and minimum wall-clock time over `reps` calls, after warm-up."""
     for _ in range(warmup):
@@ -141,7 +137,7 @@ def question2(X, s):
     print("\n=== Q2: objective and gradient ===")
     rng = np.random.default_rng(0)
 
-    # ---- numerical agreement, loop vs vectorized ----------------------
+    # Numerical agreement, loop vs vectorized 
     per_scale = []
     for scale in Q2_SCALES:
         theta = scale * rng.standard_normal(X.shape[0])
@@ -164,7 +160,7 @@ def question2(X, s):
     print(f"  max relative error over all scales: f = {max_f:.2e}, "
           f"grad = {max_g:.2e}")
 
-    # ---- run times, at a single theta ---------------------------------
+    # Run times, at a single theta
     theta = THETA_SCALE * np.random.default_rng(1).standard_normal(X.shape[0])
     args = (theta, X, s, LAM)
     t_fl, t_fl_min = time_it(f_loop, args, reps=5)
@@ -207,13 +203,12 @@ def question2(X, s):
 # Choosing the window by "slope close to 2" would make the test unable to
 # fail, since a wrong gradient (slope 1) would simply never be reported.
 
-
 def question3(X, s):
     print("\n=== Q3: gradient check ===")
     rng = np.random.default_rng(0)
     theta = THETA_SCALE * rng.standard_normal(X.shape[0])
     v = rng.standard_normal(X.shape[0])
-    v /= np.linalg.norm(v)                      # unit direction
+    v /= np.linalg.norm(v)  # unit direction
 
     # X^T (theta + t v) = X^T theta + t X^T v, so the two products below are
     # computed once instead of once per value of t.
@@ -238,7 +233,7 @@ def question3(X, s):
                np.column_stack((t, err)), delimiter=",",
                header="t,error", comments="")
 
-    # ---- fit the straight portion --------------------------------------
+    # Fit the straight portion
     floor = FLOOR_FACTOR * np.finfo(float).eps * abs(f0)
     mask = (err > floor) & (t <= T_MAX_FIT)
     slope, _ = np.polyfit(np.log10(t[mask]), np.log10(err[mask]), 1)
@@ -247,7 +242,7 @@ def question3(X, s):
           f"({int(mask.sum())} points)")
     print(f"  log-log slope = {slope:.4f}")
 
-    # ---- figure ---------------------------------------------------------
+    # Figure 
     C = np.median(err[mask] / t[mask] ** 2)
     fig, ax = plt.subplots(figsize=(7, 5))
     ax.loglog(t, err, label="Taylor remainder")
@@ -280,8 +275,7 @@ def question3(X, s):
 # run_gd() is the shared GD loop, used both here and by step_size_experiment.py.
 # The step size (CHOSEN_C / L) was selected beforehand in step_size_experiment.py
 
-CHOSEN_C = 1.9           # fastest within alpha < 2/L --> see q4_step_size_experiment.txt
- 
+CHOSEN_C = 1.9  # fastest within alpha < 2/L --> see q4_step_size_experiment.txt
  
 def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
     """ 
@@ -304,6 +298,7 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
     start = time.perf_counter()     
     reason = None
     k = 0
+
     # iterations
     while True:     
         # check stopping reason
@@ -329,6 +324,7 @@ def run_gd(X, s, L, c, theta0, tol=None, max_iter=None, max_time=None):
             grad_norms.append(gn)
             reason = "diverged"
             break
+
         # save computations
         objectives.append(f)
         grad_norms.append(gn)
@@ -379,7 +375,6 @@ def question4(X, s, L):
 # The method is directly run on question 4 and we use results from theta_final,
 # objectives, grad_norms
 
-
 def question5(objectives, grad_norms, L):
     """
     Q5: plot the run from Question 4 with the theoretical guarantee for the gradient
@@ -406,7 +401,7 @@ def question5(objectives, grad_norms, L):
 # Q7: classification
 # ==================================================================
 def error_rate(theta, X, y):
-    pred = (X.T @ theta > 0).astype(float)      # 1 if x~^T theta > 0 else 0
+    pred = (X.T @ theta > 0).astype(float)  # 1 if x~^T theta > 0 else 0
     return float(np.mean(pred != y))
 
 
@@ -420,20 +415,7 @@ def question7(theta, X_tr, y_tr, X_te, y_te):
     with open(RESULTS_DIR / "q7_errors.json", "w") as fh:
         json.dump({"train_error": e_tr, "test_error": e_te}, fh, indent=2)
 
-
 # ==================================================================
-
-
-
-
-
- 
-
-
-
-
-
-
 
 
 
@@ -454,19 +436,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

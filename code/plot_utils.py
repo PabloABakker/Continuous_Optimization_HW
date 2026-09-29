@@ -1,10 +1,10 @@
 """
 Figures and file output for Questions 4 and 5.
 
-Kept apart from main_andres.py so that question4() and question5() read as
+Kept apart from main.py so that question4() and question5() read as
 what they do -- run the method, compute the guarantee -- rather than as
 sixty lines of matplotlib and twenty of file writing.  Nothing here imports
-main_andres: every quantity is passed in, so the two modules stay
+main: every quantity is passed in, so the two modules stay
 independent and the figures can be redrawn from a saved history without
 running gradient descent again:
 
@@ -12,7 +12,7 @@ running gradient descent again:
     h = np.load("../results/q4_gd_history.npz")
     ...
 
-The backend is set by the caller (main_andres.py selects "Agg" before
+The backend is set by the caller (main.py selects "Agg" before
 importing this module).
 """
 

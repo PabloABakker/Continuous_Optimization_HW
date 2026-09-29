@@ -31,7 +31,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from main_andres import load_data, signs, run_gd, LAM, TOL, SEED, RESULTS_DIR
+from main import load_data, signs, run_gd, LAM, TOL, SEED, RESULTS_DIR
 
 
 # Candidates within theoretical range
@@ -135,7 +135,7 @@ def write_report(L, orderings, identical, results, all_c):
     """
     with open(RESULTS_DIR / "q4_step_size_experiment.txt", "w") as fh:
         fh.write("Step-size selection for Question 4 "
-                 "(produced by step_size_experiment.py, not by main_andres.py)\n\n")
+                 "(produced by step_size_experiment.py, not by main.py)\n\n")
         fh.write(f"lambda = {LAM}\nL = {L:.12e}\n2/L = {2.0 / L:.12e}\n")
         fh.write(f"stopping rule: ||g_k|| <= {TOL:g} * ||g_0||\n")
         fh.write(f"candidates: {SWEEP_C} within 2/L, {PROBE_C} beyond it\n\n")
