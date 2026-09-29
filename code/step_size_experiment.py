@@ -36,8 +36,9 @@ from main import load_data, signs, run_gd, LAM, TOL, SEED, RESULTS_DIR
 
 # Candidates within theoretical range
 SWEEP_C = [0.5, 1.0, 1.5, 1.9]
-# Probes beyond the guarantee to test how conservative the bound is
-PROBE_C = [2.5, 4.0]
+# Probes beyond the guarantee to test how conservative the bound is, carried
+# far enough to see where the 1/c scaling starts to drift
+PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0, 25.0]
 
 SHORT_SEEDS = [42, 0, 7] 
 SHORT_ITERS = 500         
@@ -151,7 +152,9 @@ def write_report(L, orderings, identical, results, all_c):
                  "      so one seed is enough for the selection below.\n\n")
 
         fh.write(f"2. ITERATIONS TO THE STOPPING RULE (seed {SEED})\n\n")
-        fh.write("        c   iterations   c * iterations\n")
+        fh.write("   f_final shows whether a larger step still reaches the same\n"
+                 "   minimiser, or merely trips the stopping rule somewhere worse.\n\n")
+        fh.write("        c   iterations   c * iterations      f_final\n")
         products = []
         for c in all_c:
             it = results[c]["iters"]
@@ -159,7 +162,8 @@ def write_report(L, orderings, identical, results, all_c):
                 fh.write(f"     {c:4.1f}   not reached\n")
                 continue
             products.append(c * it)
-            fh.write(f"     {c:4.1f}   {it:10d}   {c * it:14.0f}\n")
+            fh.write(f"     {c:4.1f}   {it:10d}   {c * it:14.0f}   "
+                     f"{results[c]['objectives'][-1]:10.4e}\n")
         if products:
             spread = (max(products) - min(products)) / min(products)
             fh.write(f"\n   c * iterations is constant to within {100 * spread:.1f}%, "
@@ -168,7 +172,9 @@ def write_report(L, orderings, identical, results, all_c):
         reached = [c for c in all_c if results[c]["iters"] is not None]
         beyond = [c for c in reached if c in PROBE_C]
         if beyond:
-            fh.write(f"   the candidates beyond 2/L ({beyond}) converged as well.\n")
+            fh.write(f"   the candidates beyond 2/L ({beyond}) converged as well,\n"
+                     f"   and to the same objective value: the bound (0, 2/L) is\n"
+                     f"   sufficient for convergence here, not necessary.\n")
         if reached:
             best = min(reached, key=lambda c: results[c]["iters"])
             fh.write(f"\n   fastest overall: c = {best} "

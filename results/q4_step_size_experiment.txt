@@ -1,17 +1,17 @@
-Step-size selection for Question 4 (produced by step_size_experiment.py, not by main_andres.py)
+Step-size selection for Question 4 (produced by step_size_experiment.py, not by main.py)
 
 lambda = 0.005
 L = 7.942860403140e+05
 2/L = 2.517984577960e-06
 stopping rule: ||g_k|| <= 0.001 * ||g_0||
-candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0] beyond it
+candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0, 7.0, 10.0, 15.0, 25.0] beyond it
 
 1. DOES THE RANKING DEPEND ON THE STARTING POINT?
    500 iterations from each of the seeds [42, 0, 7], ranked by ||g_k||/||g_0|| (best first)
 
-     seed 42:  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
-     seed  0:  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
-     seed  7:  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed 42:  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed  0:  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed  7:  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
 
    identical across all 3 seeds: True
    => the starting point moves the numbers but not the order,
@@ -19,16 +19,25 @@ candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0] beyond it
 
 2. ITERATIONS TO THE STOPPING RULE (seed 42)
 
-        c   iterations   c * iterations
-      0.5        43947            21974
-      1.0        21977            21977
-      1.5        14654            21981
-      1.9        11570            21983
-      2.5         8795            21988
-      4.0         5500            22000
+   f_final shows whether a larger step still reaches the same
+   minimiser, or merely trips the stopping rule somewhere worse.
 
-   c * iterations is constant to within 0.1%, i.e. iterations ~ 1/c.
-   the candidates beyond 2/L ([2.5, 4.0]) converged as well.
+        c   iterations   c * iterations      f_final
+      0.5        43947            21974   1.0191e+02
+      1.0        21977            21977   1.0191e+02
+      1.5        14654            21981   1.0192e+02
+      1.9        11570            21983   1.0192e+02
+      2.5         8795            21988   1.0193e+02
+      4.0         5500            22000   1.0194e+02
+      7.0         3146            22022   1.0196e+02
+     10.0         2205            22050   1.0198e+02
+     15.0         1473            22095   1.0204e+02
+     25.0          890            22250   1.0201e+02
 
-   fastest overall: c = 4.0 (5500 iterations)
+   c * iterations is constant to within 1.3%, i.e. iterations ~ 1/c.
+   the candidates beyond 2/L ([2.5, 4.0, 7.0, 10.0, 15.0, 25.0]) converged as well,
+   and to the same objective value: the bound (0, 2/L) is
+   sufficient for convergence here, not necessary.
+
+   fastest overall: c = 25.0 (890 iterations)
    fastest within the 2/L guarantee: c = 1.9 (11570 iterations)  <- CHOSEN_C
