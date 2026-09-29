@@ -14,11 +14,11 @@ import time
 from pathlib import Path
 
 import matplotlib
-matplotlib.use("Agg")            # no GUI: must be set before pyplot is imported anywhere
+matplotlib.use("Agg")         
 import numpy as np
 from scipy.io import loadmat
 
-# every figure lives in plot_utils; imported after the Agg backend is selected above
+# imported functions for plots and files (Q3-5)
 from plot_utils import (save_q4_results, plot_gradient_check,
                         plot_convergence, plot_theory_horizon)
 
@@ -131,21 +131,24 @@ def f_and_grad(theta, X, s, lam):
 # ---- timing --------------------------------------------------------
                     # REVIEW + final elements 
 def time_it(func, args, reps, warmup=2):
-    """Median and minimum wall-clock time over `reps` calls, after warm-up."""
-    # 
+    """Median wall-clock time over `reps` calls, after warm-up."""
+    # discarded calls: the first one pays for cold caches and any lazy setup,
+    # which would otherwise land in the measurement
     for _ in range(warmup):
         func(*args)
 
-    # count the time for each repetitions and saves in times
+    # count the time for each repetition and save in times
     times = []
     for _ in range(reps):
         t0 = time.perf_counter()
         func(*args)
         times.append(time.perf_counter() - t0)
-    return float(np.median(times)), float(np.min(times))
+    return float(np.median(times))
 
 
 def question2(X, s):
+    """
+    """
     print("\n=== Q2: objective and gradient ===")
   
     # ---- numerical agreement: loop vs vectorized ----------------------
@@ -172,14 +175,13 @@ def question2(X, s):
     max_g = max(p["rel_gradient_error"] for p in per_scale)
 
 
-
     # ---- run times ---------------------------------
     theta = THETA_SCALE * np.random.default_rng(1).standard_normal(X.shape[0]) # fix new seed - scale 0.1 to have 3 branches touched without different scales
     args = (theta, X, s, LAM)
-    t_fl, t_fl_min = time_it(f_loop, args, reps=5)     # only 5 reps to avoid long running time
-    t_fv, t_fv_min = time_it(f_vec, args, reps=100)
-    t_gl, t_gl_min = time_it(grad_loop, args, reps=5)
-    t_gv, t_gv_min = time_it(grad_vec, args, reps=100)
+    t_fl = time_it(f_loop, args, reps=5)     # only 5 reps to avoid long running time
+    t_fv = time_it(f_vec, args, reps=100)
+    t_gl = time_it(grad_loop, args, reps=5)
+    t_gv = time_it(grad_vec, args, reps=100)
     
 
 
@@ -189,17 +191,13 @@ def question2(X, s):
             per_scale=per_scale,
             max_rel_objective_error=max_f,
             max_rel_gradient_error=max_g,
-            timing_note="median and min over repeated calls, after 2 warm-up calls",
+            timing_note="median over repeated calls, after 2 warm-up calls",
             reps_loop=5,
             reps_vectorized=100,
             time_f_loop_median=t_fl,
             time_f_vec_median=t_fv,
             time_grad_loop_median=t_gl,
             time_grad_vec_median=t_gv,
-            time_f_loop_min=t_fl_min,
-            time_f_vec_min=t_fv_min,
-            time_grad_loop_min=t_gl_min,
-            time_grad_vec_min=t_gv_min,
             speedup_f=t_fl / t_fv,
             speedup_grad=t_gl / t_gv,
         ), fh, indent=2)
@@ -253,14 +251,10 @@ def question3(X, s):
                header="t,error", comments="")
 
 
-
-
     # ---- fit the straight portion --------------------------------------
     floor = FLOOR_FACTOR * np.finfo(float).eps * abs(f0)
     mask = (err > floor) & (t <= T_MAX_FIT)
     slope, _ = np.polyfit(np.log10(t[mask]), np.log10(err[mask]), 1)
-
-
 
 
     # ---- figure ---------------------------------------------------------
@@ -409,16 +403,14 @@ def question5(objectives, grad_norms, L):
 # Q7: classification
 # ==================================================================
 def error_rate(theta, X, y):
-    pred = (X.T @ theta > 0).astype(float)      # 1 if x~^T theta > 0 else 0
+    pred = (X.T @ theta > 0).astype(float)      # 1 if x^T*theta >0 else 0
     return float(np.mean(pred != y))
 
 
 def question7(theta, X_tr, y_tr, X_te, y_te):
     print("\n=== Q7: classification error ===")
     e_tr, e_te = error_rate(theta, X_tr, y_tr), error_rate(theta, X_te, y_te)
-    print(f"train error = {e_tr:.6f}  ({e_tr*100:.3f}%)")
-    print(f"test  error = {e_te:.6f}  ({e_te*100:.3f}%)")
-    np.save(RESULTS_DIR / "q7_theta_final.npy", theta)
+    
     np.savetxt(RESULTS_DIR / "q7_theta_final.csv", theta, delimiter=",")
     with open(RESULTS_DIR / "q7_errors.json", "w") as fh:
         json.dump({"train_error": e_tr, "test_error": e_te}, fh, indent=2)
@@ -431,14 +423,14 @@ def main():
     X_tr, y_tr, X_te, y_te = load_data()
     s_tr = signs(y_tr)
 
-    L = float(np.linalg.eigvalsh(X_tr @ X_tr.T)[-1]) + LAM # make sure its not computed again!!
+    L = float(np.linalg.eigvalsh(X_tr @ X_tr.T)[-1]) + LAM
 
     question2(X_tr, s_tr)
     question3(X_tr, s_tr)
     theta_final, objectives, grad_norms = question4(X_tr, s_tr, L)
     question5(objectives, grad_norms, L)
     question7(theta_final, X_tr, y_tr, X_te, y_te)
-    print(f"\nAll results written to {RESULTS_DIR}")
+    
 
 
 if __name__ == "__main__":

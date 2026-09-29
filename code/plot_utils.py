@@ -4,12 +4,12 @@ Figures and file output for Questions 4 and 5.
 Kept apart from main.py so that question4() and question5() read as
 what they do -- run the method, compute the guarantee -- rather than as
 sixty lines of matplotlib and twenty of file writing.  Nothing here imports
-main: every quantity is passed in, so the two modules stay
-independent and the figures can be redrawn from a saved history without
-running gradient descent again:
+main: every quantity is passed in, so the two modules stay independent and
+the figures can be redrawn from a saved history without running gradient
+descent again:
 
     import numpy as np, plot_utils
-    h = np.load("../results/q4_gd_history.npz")
+    d = np.loadtxt("../results/q4_gd_history.csv", delimiter=",", skiprows=1)
     ...
 
 The backend is set by the caller (main.py selects "Agg" before
@@ -32,19 +32,12 @@ def save_q4_results(results_dir, k, objectives, grad_norms, theta0,
 
     q4_gd_history.csv is the per-iteration record the question requires:
     one row per iterate k = 0 .. K, the initial point included.
-    q4_gd_history.npz repeats it with theta_0, theta_final and the run's
-    constants.  q4_stopping_reason.txt carries the stopping reason and the
-    summary values the write-up cites, so they need not be dug out of the
-    first and last rows of an 11572-line file.
+    q4_stopping_reason.txt carries the stopping reason and the summary
+    values the write-up cites, so they need not be dug out of the first and
+    last rows of an 11572-line file.
 
     The configuration is keyword-only, so the call site names each constant.
     """
-    # theta_final is not repeated here: it is saved for Q7 as
-    # q7_theta_final.npy and q7_theta_final.csv.
-    np.savez(results_dir / "q4_gd_history.npz",
-             iterations=np.arange(k + 1), objectives=objectives,
-             gradient_norms=grad_norms, theta0=theta0,
-             step_size=step, c=c, sigma_max=sigma_max, L=L, lam=lam, seed=seed)
 
     np.savetxt(results_dir / "q4_gd_history.csv",
                np.column_stack((np.arange(k + 1), objectives, grad_norms)),

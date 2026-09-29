@@ -57,7 +57,6 @@ not pay the four minutes.
 | File | Contents |
 |---|---|
 | **`q4_gd_history.csv`** | **One row per iteration `k = 0 … 11570`, including the initial point: `k`, the objective `f_lambda(theta_k)`, and the gradient norm `norm(grad f_lambda(theta_k))`.** |
-| `q4_gd_history.npz` | The same two sequences, plus `theta0`, `theta_final`, `step_size`, `c`, `L`, `sigma_max`, `lambda` and `seed`. |
 | `q4_stopping_reason.txt` | **The stopping reason**, the iteration count, the elapsed time, the step size, and the initial and final values of the objective and the gradient norm. |
 | `q4_step_size_experiment.txt` | The step-size search: the ranking of the candidates from three starting points, and the iterations each needs to reach the stopping rule. Written by `step_size_experiment.py`. |
 | `q4_step_size_comparison.pdf` | Gradient-norm decay for each candidate step size. Written by `step_size_experiment.py`. |
@@ -83,7 +82,7 @@ Questions 1, 6 and 8 are theoretical and produce no files.
 | File | Role |
 |---|---|
 | `main.py` | Everything graded: data loading, both implementations of the objective and gradient, and Questions 2, 3, 4, 5 and 7. |
-| `plot_utils.py` | The two Question 5 figures. Imports nothing from `main.py`, so either figure can be redrawn from a saved history. |
+| `plot_utils.py` | Every figure and the Question 4 file output. Imports nothing from `main.py`, so a figure can be redrawn from a saved history. |
 | `step_size_experiment.py` | The one-off step-size search behind `CHOSEN_C`. |
 | `main_.py` | An earlier draft kept for reference. Not part of the graded pipeline; `main.py` is the entry point. |
 
