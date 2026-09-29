@@ -132,8 +132,7 @@ def f_and_grad(theta, X, s, lam):
                     # REVIEW + final elements 
 def time_it(func, args, reps, warmup=2):
     """Median wall-clock time over `reps` calls, after warm-up."""
-    # discarded calls: the first one pays for cold caches and any lazy setup,
-    # which would otherwise land in the measurement
+    # run warmup timer to avoid initialisation bias
     for _ in range(warmup):
         func(*args)
 

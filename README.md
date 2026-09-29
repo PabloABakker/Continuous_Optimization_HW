@@ -73,7 +73,7 @@ not pay the four minutes.
 | File | Contents |
 |---|---|
 | `q7_errors.json` | Training and test classification error rates for `theta_final`. |
-| `q7_theta_final.csv`, `q7_theta_final.npy` | The final iterate `theta_final` (785 entries: 784 pixel weights and the bias). |
+| `q7_theta_final.csv` | The final iterate `theta_final` (785 entries: 784 pixel weights and the bias). |
 
 Questions 1, 6 and 8 are theoretical and produce no files.
 
