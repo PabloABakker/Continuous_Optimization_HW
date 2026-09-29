@@ -21,10 +21,10 @@
   "timing_note": "median over repeated calls, after 2 warm-up calls",
   "reps_loop": 5,
   "reps_vectorized": 100,
-  "time_f_loop_median": 0.007455375045537949,
-  "time_f_vec_median": 0.0007954374887049198,
-  "time_grad_loop_median": 0.01727266702800989,
-  "time_grad_vec_median": 0.0017987710889428854,
-  "speedup_f": 9.372672461888,
-  "speedup_grad": 9.602482013517804
+  "time_f_loop_median": 0.007354499772191048,
+  "time_f_vec_median": 0.0007826045621186495,
+  "time_grad_loop_median": 0.017348332796245813,
+  "time_grad_vec_median": 0.001774375094100833,
+  "speedup_f": 9.397466010524026,
+  "speedup_grad": 9.777150757989592
 }

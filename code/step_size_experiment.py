@@ -2,8 +2,10 @@
 Step-size selection for Question 4. Ran before submission to get CHOSEN_C. 
 Not run by teachers, or imported/called by main.py.
 
-Writes  ../results/q4_step_size_experiment.txt
-        ../results/q4_step_size_comparison.pdf 
+Writes into ../results/q4_stepsize_selection(disregard)/ , a folder kept apart because
+"python main.py" does not regenerate these two files:
+        q4_step_size_experiment.txt
+        q4_step_size_comparison.pdf
 
 
 Two experiments :
@@ -32,6 +34,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from main import load_data, signs, run_gd, LAM, TOL, SEED, RESULTS_DIR
+
+# these outputs are not reproduced by "python main.py", so they sit in a
+# folder of their own rather than among the files that are
+OUT_DIR = RESULTS_DIR / "q4_stepsize_selection(disregard)"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # Candidates within theoretical range
@@ -124,7 +131,7 @@ def make_plot(results, all_c):
     ax.set_axisbelow(True)
     ax.legend(frameon=False, loc="upper right", title="step $\\alpha = c/L$")
     fig.tight_layout()
-    fig.savefig(RESULTS_DIR / "q4_step_size_comparison.pdf")
+    fig.savefig(OUT_DIR / "q4_step_size_comparison.pdf")
     plt.close(fig)
 
 
@@ -135,7 +142,7 @@ def write_report(L, orderings, identical, results, all_c):
     The per-checkpoint tables behind experiment 1 stay on the console; what is
     recorded here is the ranking they produce.
     """
-    with open(RESULTS_DIR / "q4_step_size_experiment.txt", "w") as fh:
+    with open(OUT_DIR / "q4_step_size_experiment.txt", "w") as fh:
         fh.write("Step-size selection for Question 4\n\n")
         fh.write(f"lambda = {LAM}\nL = {L:.12e}\n2/L = {2.0 / L:.12e}\n")
         fh.write(f"stopping rule: ||g_k|| <= {TOL:g} * ||g_0||\n")
