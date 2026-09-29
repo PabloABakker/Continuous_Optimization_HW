@@ -4,16 +4,16 @@ lambda = 0.005
 L = 7.942860403140e+05
 2/L = 2.517984577960e-06
 stopping rule: ||g_k|| <= 0.001 * ||g_0||
-candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0, 7.0, 10.0, 15.0, 25.0, 50.0] beyond it
+candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0, 7.0, 10.0, 15.0, 25.0, 50.0, 75.0, 100.0, 125.0, 150.0, 175.0, 200.0] beyond it
 
 1. DOES THE RANKING DEPEND ON THE STARTING POINT?
    500 iterations from each of the seeds [42, 0, 7], ranked by ||g_k||/||g_0|| (best first)
 
-     seed 42:  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
-     seed  0:  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
-     seed  7:  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed 42:  175  <  200  <  150  <  125  <  100  <  75  <  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed  0:  200  <  175  <  150  <  125  <  100  <  75  <  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
+     seed  7:  200  <  175  <  150  <  125  <  100  <  75  <  50  <  25  <  15  <  10  <  7  <  4  <  2.5  <  1.9  <  1.5  <  1  <  0.5
 
-   identical across all 3 seeds: True
+   identical across all 3 seeds: False
    => the starting point moves the numbers but not the order,
       so one seed is enough for the selection below.
 
@@ -34,11 +34,27 @@ candidates: [0.5, 1.0, 1.5, 1.9] within 2/L, [2.5, 4.0, 7.0, 10.0, 15.0, 25.0, 5
      15.0         1473            22095   1.0204e+02
      25.0          890            22250   1.0201e+02
      50.0          466            23300   1.0109e+02
+     75.0          332            24900   1.0178e+02
+     100.0          266            26600   1.0242e+02
+     125.0          229            28625   1.0348e+02
+     150.0          212            31800   1.0453e+02
+     175.0          204            35700   1.0976e+02
+     200.0          195            39000   1.2553e+02
 
-   Over c = 0.5 .. 50 every run reaches the same
-   objective (within 1%), and c * iterations is constant to within
-   6.0%: the iteration count scales as 1/c. The interval
-   (0, 2/L) is therefore sufficient for convergence here, not necessary.
+   Every candidate converged, so the interval (0, 2/L) is sufficient
+   for convergence here and not necessary. Both the 1/c scaling and the
+   quality of the solution then degrade smoothly, with no sharp break:
 
-   fastest overall: c = 50.0 (466 iterations)
+     c * iterations is within 1% of its best up to c = 15,
+     f_final       is within 1% of its best up to c = 75.
+     At c = 200 the product is 77% above its best and f_final 24% above its.
+
+   The iteration count keeps falling throughout, so on its own it would
+   favour the largest step. It falls because the run meets the stopping
+   rule sooner, not because it converges better: a larger step clears the
+   directions of high curvature at once and leaves the remaining error in
+   flat ones, where the same gradient norm sits much further from the
+   minimiser. That is what f_final records.
+
+   fastest overall: c = 200.0 (195 iterations)
    fastest within the 2/L guarantee: c = 1.9 (11570 iterations)  <- CHOSEN_C

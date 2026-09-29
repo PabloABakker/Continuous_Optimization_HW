@@ -36,9 +36,9 @@ from main import load_data, signs, run_gd, LAM, TOL, SEED, RESULTS_DIR
 
 # Candidates within theoretical range
 SWEEP_C = [0.5, 1.0, 1.5, 1.9]
-# Probes beyond the guarantee to test how conservative the bound is, carried
-# far enough to see the 1/c scaling drift and then the solution degrade
-PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0, 25.0, 50.0]
+# Probes beyond the guarantee to test how conservative the bound is, then a
+# regular grid every 25 up to 200 to see where the solution starts to degrade
+PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0] + [float(c) for c in range(25, 201, 25)]
 
 SHORT_SEEDS = [42, 0, 7] 
 SHORT_ITERS = 500         
@@ -169,29 +169,43 @@ def write_report(L, orderings, identical, results, all_c):
                      f"{results[c]['objectives'][-1]:10.4e}\n")
         reached = [c for c in all_c if results[c]["iters"] is not None]
 
-        # A larger step is only genuinely better if it lands at the same
-        # minimiser.  Take the best objective reached as the reference and
-        # call a candidate clean while it stays within 1% of it.
+        # Both quantities drift smoothly rather than breaking at a threshold,
+        # so report where each stays within 1% and how far they have moved at
+        # the largest candidate, instead of classifying candidates as good or
+        # bad on a cut-off that would be arbitrary.
         if reached:
             f_ref = min(results[c]["objectives"][-1] for c in reached)
-            clean = [c for c in reached
-                     if results[c]["objectives"][-1] <= 1.01 * f_ref]
-            prod = [c * results[c]["iters"] for c in clean]
-            spread = (max(prod) - min(prod)) / min(prod)
-            fh.write(f"\n   Over c = {min(clean):g} .. {max(clean):g} every run reaches the same\n"
-                     f"   objective (within 1%), and c * iterations is constant to within\n"
-                     f"   {100 * spread:.1f}%: the iteration count scales as 1/c. The interval\n"
-                     f"   (0, 2/L) is therefore sufficient for convergence here, not necessary.\n")
-            degraded = [c for c in reached if c not in clean]
-            if degraded:
-                fh.write(f"\n   Past c = {min(degraded):g} the objective rises "
-                         f"({results[min(degraded)]['objectives'][-1]:.4e} against "
-                         f"{f_ref:.4e}) while the\n"
-                         f"   iteration count keeps falling. The run is satisfying the stopping\n"
-                         f"   rule in the flat branch of phi, where the gradient is almost\n"
-                         f"   entirely the regularisation term lambda*theta, rather than at the\n"
-                         f"   minimiser. Iterations alone would not reveal this, which is why\n"
-                         f"   f_final is reported.\n")
+            p_ref = min(c * results[c]["iters"] for c in reached)
+
+            def last_within(key, ref, frac=0.01):
+                """Largest c for which `key` is still within frac of its best."""
+                ok = min(reached)
+                for c in reached:
+                    if key(c) <= (1.0 + frac) * ref:
+                        ok = c
+                    else:
+                        break
+                return ok
+
+            c_prod = last_within(lambda c: c * results[c]["iters"], p_ref)
+            c_obj = last_within(lambda c: results[c]["objectives"][-1], f_ref)
+            c_max = max(reached)
+            p_max = c_max * results[c_max]["iters"]
+            f_max = results[c_max]["objectives"][-1]
+
+            fh.write(f"\n   Every candidate converged, so the interval (0, 2/L) is sufficient\n"
+                     f"   for convergence here and not necessary. Both the 1/c scaling and the\n"
+                     f"   quality of the solution then degrade smoothly, with no sharp break:\n\n")
+            fh.write(f"     c * iterations is within 1% of its best up to c = {c_prod:g},\n")
+            fh.write(f"     f_final       is within 1% of its best up to c = {c_obj:g}.\n")
+            fh.write(f"     At c = {c_max:g} the product is {100 * (p_max / p_ref - 1):.0f}% above its best "
+                     f"and f_final {100 * (f_max / f_ref - 1):.0f}% above its.\n\n")
+            fh.write(f"   The iteration count keeps falling throughout, so on its own it would\n"
+                     f"   favour the largest step. It falls because the run meets the stopping\n"
+                     f"   rule sooner, not because it converges better: a larger step clears the\n"
+                     f"   directions of high curvature at once and leaves the remaining error in\n"
+                     f"   flat ones, where the same gradient norm sits much further from the\n"
+                     f"   minimiser. That is what f_final records.\n")
         if reached:
             best = min(reached, key=lambda c: results[c]["iters"])
             fh.write(f"\n   fastest overall: c = {best} "
