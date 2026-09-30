@@ -48,7 +48,6 @@ PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0] + [float(c) for c in range(25, 201, 25)]  
 # experiment 1 parameters
 SHORT_ITERS = 100
 SHORT_SEEDS = [42, 0, 7]        # test seeds 
-CHECKPOINTS = [10, 25, 50, 100] # 
 
 # experiment 2 parameters
 LONG_MAX_ITER = 60000
@@ -59,24 +58,23 @@ COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]
 
 # ------------ Experiment 1 ------------
 def short_runs(X, s, L, all_c):
-    table, orderings = {}, []
+    orderings = []
     for seed in SHORT_SEEDS:
-        # 
         theta0 = np.random.default_rng(seed).standard_normal(X.shape[0])
-        
+
+        # no tolerance is passed, so each run does the full SHORT_ITERS steps
+        # and gn[-1] is the gradient norm at that iteration
+        ratio = {}
         for c in all_c:
             _, _, gn, _, _ = run_gd(X, s, L, c, theta0, max_iter=SHORT_ITERS)
-            row = [gn[k] / gn[0] if k < gn.size else np.nan for k in CHECKPOINTS]
-            table[(seed, c)] = row
-            print(f"   {c:4.2f}  " + "".join(f"   {v:.3e}" for v in row))
-        # ranking at the final checkpoint, best (smallest ratio) first
-        order = sorted(all_c, key=lambda c: (np.isnan(table[(seed, c)][-1]),
-                                             table[(seed, c)][-1]))
+            ratio[c] = gn[-1] / gn[0]
+
+        # best (smallest ratio) first; a diverged run gives nan and sorts last
+        order = sorted(all_c, key=lambda c: (np.isnan(ratio[c]), ratio[c]))
         orderings.append(tuple(order))
-        
 
     identical = len(set(orderings)) == 1
-    return table, orderings, identical
+    return orderings, identical
 
 
 # ------------ Experiment 2 ------------
@@ -88,12 +86,12 @@ def long_runs(X, s, L, all_c):
             X, s, L, c, theta0, tol=TOL,
             max_iter=LONG_MAX_ITER, max_time=LONG_MAX_TIME)
         iters = gn.size - 1 if reason == "gradient_tolerance" else None
-        results[c] = dict(objectives=obj, grad_norms=gn, reason=reason,
-                          seconds=secs, iters=iters)
-        shown = f"{iters:>6d}" if iters is not None else "  none"
+
         ratio = gn / gn[0]
-        bumps = int(np.sum(np.diff(ratio) > 0))
-    
+        increases = int(np.sum(np.diff(ratio) > 0))
+        results[c] = dict(objectives=obj, grad_norms=gn, reason=reason,
+                          seconds=secs, iters=iters, increases=increases)
+
     return results
 
 
@@ -133,8 +131,6 @@ def write_report(L, orderings, identical, results, all_c):
     """
     1: the ranking of the candidates does not depend on the starting point.
     2: the iteration count to the stopping rule, and its 1/c scaling.
-    The per-checkpoint tables behind experiment 1 stay on the console; what is
-    recorded here is the ranking they produce.
     """
     with open(OUT_DIR / "q4_step_size_experiment.txt", "w") as fh:
         fh.write("Step-size selection for Question 4\n\n")
@@ -150,7 +146,7 @@ def write_report(L, orderings, identical, results, all_c):
         fh.write(f"\n   ranking identical across all seeds: {identical}\n\n\n")
 
         fh.write(f"Experiment 2 (seed {SEED})\n\n")
-        fh.write("        c   iterations   c * iterations      f_final\n")
+        fh.write("        c   iterations   c * iterations      f_final   increases\n")
         products = []
         for c in all_c:
             it = results[c]["iters"]
@@ -159,14 +155,11 @@ def write_report(L, orderings, identical, results, all_c):
                 continue
             products.append(c * it)
             fh.write(f"     {c:4.1f}   {it:10d}   {c * it:14.0f}   "
-                     f"{results[c]['objectives'][-1]:10.4e}\n")
+                     f"{results[c]['objectives'][-1]:10.4e}   "
+                     f"{results[c]['increases']:9d}\n")
         reached = [c for c in all_c if results[c]["iters"] is not None]
 
-        fh.write("\n   \n")
         if reached:
-            best = min(reached, key=lambda c: results[c]["iters"])
-            fh.write(f"\n   fastest overall: c = {best} "
-                     f"({results[best]['iters']} iterations)\n")
             within = [c for c in reached if c in SWEEP_C]
             if within:
                 bw = min(within, key=lambda c: results[c]["iters"])
@@ -181,14 +174,12 @@ def main():
     s = signs(y)
     L = float(np.linalg.eigvalsh(X @ X.T)[-1]) + LAM
     all_c = SWEEP_C + PROBE_C
-    print(f"L = {L:.6e},  1/L = {1.0 / L:.6e},  2/L = {2.0 / L:.6e}")
-    print(f"candidates: {SWEEP_C} (guaranteed) + {PROBE_C} (beyond 2/L)")
 
-    table, orderings, identical = short_runs(X, s, L, all_c)
+    orderings, identical = short_runs(X, s, L, all_c)
     results = long_runs(X, s, L, all_c)
     make_plot(results, all_c)
     write_report(L, orderings, identical, results, all_c)
-    print(f"\nWritten to {RESULTS_DIR}")
+    
 
 
 if __name__ == "__main__":
