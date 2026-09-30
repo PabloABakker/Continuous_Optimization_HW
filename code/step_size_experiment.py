@@ -62,14 +62,13 @@ def short_runs(X, s, L, all_c):
     for seed in SHORT_SEEDS:
         theta0 = np.random.default_rng(seed).standard_normal(X.shape[0])
 
-        # no tolerance is passed, so each run does the full SHORT_ITERS steps
-        # and gn[-1] is the gradient norm at that iteration
+        # no tolerance is passed
         ratio = {}
         for c in all_c:
             _, _, gn, _, _ = run_gd(X, s, L, c, theta0, max_iter=SHORT_ITERS)
             ratio[c] = gn[-1] / gn[0]
 
-        # best (smallest ratio) first; a diverged run gives nan and sorts last
+        # best (smallest ratio) first - a diverged run gives nan and sorts last
         order = sorted(all_c, key=lambda c: (np.isnan(ratio[c]), ratio[c]))
         orderings.append(tuple(order))
 
@@ -81,14 +80,17 @@ def short_runs(X, s, L, all_c):
 def long_runs(X, s, L, all_c):
     theta0 = np.random.default_rng(SEED).standard_normal(X.shape[0])
     results = {}
+
+    # run full GD for each step size + record results
     for c in all_c:
         _, obj, gn, reason, secs = run_gd(
             X, s, L, c, theta0, tol=TOL,
             max_iter=LONG_MAX_ITER, max_time=LONG_MAX_TIME)
-        iters = gn.size - 1 if reason == "gradient_tolerance" else None
-
+        
+        iters = gn.size - 1 if reason == "gradient_tolerance" else None     # never touches time limit - not part of the experiment 
         ratio = gn / gn[0]
         increases = int(np.sum(np.diff(ratio) > 0))
+
         results[c] = dict(objectives=obj, grad_norms=gn, reason=reason,
                           seconds=secs, iters=iters, increases=increases)
 
@@ -110,7 +112,7 @@ def make_plot(results, all_c):
                     xytext=(3, 8 + 9 * (j % 2)), textcoords="offset points",
                     color=color, fontsize=9, fontweight="bold", clip_on=False)
     ax.axhline(TOL, color="#52514e", ls="--", lw=1, zorder=1)
-    #
+    
     ax.set_ylim(bottom=3.5e-4)
     ax.annotate(f"stopping rule:  $\\|g_k\\| \\leq {TOL:g}\\,\\|g_0\\|$",
                 xy=(0.0, TOL), xycoords=("axes fraction", "data"),
