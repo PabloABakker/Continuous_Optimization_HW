@@ -57,6 +57,7 @@ deterministic and does not pay the four minutes.
 |---|---|
 | **`q4_gd_history.csv`** | **One row per iteration `k = 0 … 11570`, including the initial point: `k`, the objective `f_lambda(theta_k)`, and the gradient norm `norm(grad f_lambda(theta_k))`.** |
 | `q4_stopping_reason.txt` | **The stopping reason**, the iteration count, the elapsed time, the step size, and the initial and final values of the objective and the gradient norm. |
+
 The two files behind the choice of step size sit in
 `results/q4_stepsize_selection(disregard)/`, in a folder of their own because
 `python main.py` does **not** regenerate them — they come from the one-off
