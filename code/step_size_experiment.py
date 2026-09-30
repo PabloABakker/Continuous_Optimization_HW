@@ -35,25 +35,22 @@ import matplotlib.pyplot as plt
 
 from main import load_data, signs, run_gd, LAM, TOL, SEED, RESULTS_DIR
 
-# these outputs are not reproduced by "python main.py", so they sit in a
-# folder of their own rather than among the files that are
+# create folder to seperate with main's results
 OUT_DIR = RESULTS_DIR / "q4_stepsize_selection(disregard)"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# Candidates within theoretical range
+# candidates within theoretical range
 SWEEP_C = [0.5, 1.0, 1.5, 1.9]
-# Probes beyond the guarantee to test how conservative the bound is, then a
-# regular grid every 25 up to 200 to see where the solution starts to degrade
-PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0] + [float(c) for c in range(25, 201, 25)]
+# Probes beyond the guarantee (test how conservative the bound is)
+PROBE_C = [2.5, 4.0, 7.0, 10.0, 15.0] + [float(c) for c in range(25, 201, 25)]          # updated
 
-SHORT_SEEDS = [42, 0, 7]
-# the horizon must be shorter than the fastest candidate's run to the tolerance
-# (c = 200 takes 195 iterations), otherwise the largest steps are ranked on
-# post-convergence drift and the ordering stops being about speed
+# experiment 1 parameters
 SHORT_ITERS = 100
-CHECKPOINTS = [10, 25, 50, 100]
+SHORT_SEEDS = [42, 0, 7]        # test seeds 
+CHECKPOINTS = [10, 25, 50, 100] # 
 
+# experiment 2 parameters
 LONG_MAX_ITER = 60000
 LONG_MAX_TIME = 300.0
 
@@ -76,10 +73,9 @@ def short_runs(X, s, L, all_c):
         order = sorted(all_c, key=lambda c: (np.isnan(table[(seed, c)][-1]),
                                              table[(seed, c)][-1]))
         orderings.append(tuple(order))
-        print(f"   ranking at k={SHORT_ITERS}: " + " < ".join(f"{c:g}" for c in order))
+        
 
     identical = len(set(orderings)) == 1
-    print(f"\n  ranking identical across all {len(SHORT_SEEDS)} seeds: {identical}")
     return table, orderings, identical
 
 
@@ -97,9 +93,7 @@ def long_runs(X, s, L, all_c):
         shown = f"{iters:>6d}" if iters is not None else "  none"
         ratio = gn / gn[0]
         bumps = int(np.sum(np.diff(ratio) > 0))
-        print(f"   c = {c:4.2f}: iters to tol = {shown}   "
-              f"final ||g||/||g_0|| = {ratio[-1]:.3e}   "
-              f"increases = {bumps:<6d} {reason}  ({secs:.1f}s)")
+    
     return results
 
 
