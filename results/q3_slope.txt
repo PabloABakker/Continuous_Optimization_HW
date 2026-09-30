@@ -2,4 +2,4 @@ theta scale: 0.1
 f_lambda(theta): 2.931311465810e+03
 round-off floor (=100.0*eps*f0): 6.508819e-11
 fit window: t in [5.754399e-07, 9.120108e-02]
-log-log slope: 2.000082
+log-log slope: 2.000298
